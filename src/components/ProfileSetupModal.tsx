@@ -2,6 +2,7 @@ import React, { useState, useRef } from 'react';
 import { motion, AnimatePresence } from 'motion/react';
 import { sounds } from './SoundManager';
 import { Terminal, ShieldAlert, CheckCircle2, UserCheck, Camera } from 'lucide-react';
+import ImageCropper from './ImageCropper';
 
 const PRESET_AVATARS = [
   { name: 'KAGE', url: 'https://api.dicebear.com/7.x/bottts/svg?seed=kage&backgroundColor=ff6b00' },
@@ -38,6 +39,7 @@ export default function ProfileSetupModal({
   const [gender, setGender] = useState('UNSPECIFIED');
   const [age, setAge] = useState('');
   const [avatarUrl, setAvatarUrl] = useState(initialAvatarUrl);
+  const [rawImageUrl, setRawImageUrl] = useState<string | null>(null);
   const [showPresetSelector, setShowPresetSelector] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [isSaving, setIsSaving] = useState(false);
@@ -57,7 +59,7 @@ export default function ProfileSetupModal({
 
     const reader = new FileReader();
     reader.onloadend = () => {
-      setAvatarUrl(reader.result as string);
+      setRawImageUrl(reader.result as string);
       sounds.playTick();
     };
     reader.readAsDataURL(file);
@@ -76,6 +78,12 @@ export default function ProfileSetupModal({
     if (username.length < 3) {
       sounds.playError();
       setError('OPERATOR CODE MUST BE AT LEAST 3 CHARACTER SIGNALS.');
+      return;
+    }
+
+    if (username.length > 10) {
+      sounds.playError();
+      setError('OPERATOR CODE MUST NOT EXCEED 10 CHARACTER SIGNALS.');
       return;
     }
 
@@ -175,101 +183,130 @@ export default function ProfileSetupModal({
                     OPERATOR AVATAR / PROFILE PICTURE
                   </span>
                   
-                  <div className="flex items-center gap-4">
-                    <div 
-                      onClick={() => {
-                        sounds.playTick();
-                        fileInputRef.current?.click();
+                  {rawImageUrl ? (
+                    <ImageCropper
+                      imageUrl={rawImageUrl}
+                      onCropComplete={(croppedUrl) => {
+                        setAvatarUrl(croppedUrl);
+                        setRawImageUrl(null);
+                        setError(null);
                       }}
-                      className="relative w-16 h-16 bg-white border-2 border-black cursor-pointer group shrink-0 flex items-center justify-center overflow-hidden hover:border-shonen-orange transition-all shadow-sm"
-                      title="Click to choose a file"
-                    >
-                      {avatarUrl ? (
-                        <img 
-                          src={avatarUrl} 
-                          alt="Avatar preview" 
-                          className="w-full h-full object-cover"
-                          onError={(e) => {
-                            (e.target as HTMLImageElement).src = `https://api.dicebear.com/7.x/bottts/svg?seed=${username || 'OPERATOR'}`;
-                          }}
-                        />
-                      ) : (
-                        <div className="flex flex-col items-center justify-center text-gray-400 group-hover:text-shonen-orange transition-colors">
-                          <Camera className="w-5 h-5 mb-0.5" />
-                          <span className="text-[7px] font-mono font-black uppercase">ADD PIC</span>
-                        </div>
-                      )}
-                      <div className="absolute inset-0 bg-black/40 opacity-0 group-hover:opacity-100 flex items-center justify-center transition-opacity">
-                        <span className="text-[9px] font-mono font-bold text-white uppercase text-center leading-none">UPLOAD</span>
-                      </div>
-                    </div>
-
-                    <div className="flex-1 space-y-2">
-                      <div className="flex gap-2">
-                        <button
-                          type="button"
+                      onCancel={() => {
+                        setRawImageUrl(null);
+                      }}
+                    />
+                  ) : (
+                    <div className="flex flex-col gap-3">
+                      <div className="flex items-center gap-4">
+                        <div 
                           onClick={() => {
                             sounds.playTick();
                             fileInputRef.current?.click();
                           }}
-                          className="flex-1 bg-white border border-gray-300 text-gray-700 hover:border-black text-[9px] font-mono font-black py-1.5 px-2 uppercase transition-all text-center cursor-pointer"
+                          className="relative w-16 h-16 bg-white border-2 border-black cursor-pointer group shrink-0 flex items-center justify-center overflow-hidden hover:border-shonen-orange transition-all shadow-sm"
+                          title="Click to choose a file"
                         >
-                          [ CHOOSE FILE ]
-                        </button>
-                        <button
-                          type="button"
-                          onClick={() => {
-                            sounds.playTick();
-                            setShowPresetSelector(!showPresetSelector);
-                          }}
-                          className="flex-1 bg-white border border-gray-300 text-gray-700 hover:border-black text-[9px] font-mono font-black py-1.5 px-2 uppercase transition-all text-center cursor-pointer"
-                        >
-                          [ PRESETS ]
-                        </button>
+                          {avatarUrl ? (
+                            <img 
+                              src={avatarUrl} 
+                              alt="Avatar preview" 
+                              className="w-full h-full object-cover"
+                              onError={(e) => {
+                                (e.target as HTMLImageElement).src = `https://api.dicebear.com/7.x/bottts/svg?seed=${username || 'OPERATOR'}`;
+                              }}
+                            />
+                          ) : (
+                            <div className="flex flex-col items-center justify-center text-gray-400 group-hover:text-shonen-orange transition-colors">
+                              <Camera className="w-5 h-5 mb-0.5" />
+                              <span className="text-[7px] font-mono font-black uppercase">ADD PIC</span>
+                            </div>
+                          )}
+                          <div className="absolute inset-0 bg-black/40 opacity-0 group-hover:opacity-100 flex items-center justify-center transition-opacity">
+                            <span className="text-[9px] font-mono font-bold text-white uppercase text-center leading-none">UPLOAD</span>
+                          </div>
+                        </div>
+
+                        <div className="flex-1 space-y-2">
+                          <div className="flex gap-2">
+                            <button
+                              type="button"
+                              onClick={() => {
+                                sounds.playTick();
+                                fileInputRef.current?.click();
+                              }}
+                              className="flex-1 bg-white border border-gray-300 text-gray-700 hover:border-black text-[9px] font-mono font-black py-1.5 px-2 uppercase transition-all text-center cursor-pointer"
+                            >
+                              [ CHOOSE FILE ]
+                            </button>
+                            <button
+                              type="button"
+                              onClick={() => {
+                                sounds.playTick();
+                                setShowPresetSelector(!showPresetSelector);
+                              }}
+                              className="flex-1 bg-white border border-gray-300 text-gray-700 hover:border-black text-[9px] font-mono font-black py-1.5 px-2 uppercase transition-all text-center cursor-pointer"
+                            >
+                              [ PRESETS ]
+                            </button>
+                          </div>
+
+                          <div className="flex gap-1">
+                            <input
+                              type="text"
+                              placeholder="OR ENTER IMAGE URL..."
+                              value={avatarUrl && !avatarUrl.startsWith('data:') ? avatarUrl : ''}
+                              onChange={(e) => {
+                                setAvatarUrl(e.target.value);
+                              }}
+                              className="flex-1 bg-white border border-gray-300 hover:border-gray-400 focus:border-shonen-orange px-2 py-1.5 font-mono text-[9px] text-gray-950 placeholder-gray-400 focus:outline-none transition-all"
+                            />
+                            {avatarUrl && !avatarUrl.startsWith('data:') && (
+                              <button
+                                type="button"
+                                onClick={() => {
+                                  sounds.playTick();
+                                  setRawImageUrl(avatarUrl);
+                                }}
+                                className="bg-shonen-orange text-white text-[9px] font-mono font-black px-2 py-1 uppercase"
+                              >
+                                CROP URL
+                              </button>
+                            )}
+                          </div>
+                        </div>
                       </div>
 
                       <input
-                        type="text"
-                        placeholder="OR PASTE IMAGE URL FROM WEB..."
-                        value={avatarUrl}
-                        onChange={(e) => {
-                          sounds.playTick();
-                          setAvatarUrl(e.target.value);
-                        }}
-                        className="w-full bg-white border border-gray-300 hover:border-gray-400 focus:border-shonen-orange px-2 py-1.5 font-mono text-[9px] text-gray-950 placeholder-gray-400 focus:outline-none transition-all"
+                        type="file"
+                        ref={fileInputRef}
+                        onChange={handleFileChange}
+                        accept="image/*"
+                        className="hidden"
                       />
-                    </div>
-                  </div>
-
-                  <input
-                    type="file"
-                    ref={fileInputRef}
-                    onChange={handleFileChange}
-                    accept="image/*"
-                    className="hidden"
-                  />
-                  
-                  {/* Presets Selector Row */}
-                  {showPresetSelector && (
-                    <div className="mt-1 border-t border-dashed border-gray-200 pt-2.5 w-full">
-                      <p className="text-[8px] font-mono text-gray-400 uppercase mb-2 text-center font-bold tracking-wider">SELECT RETRO FIGHTER PORTRAITS</p>
-                      <div className="grid grid-cols-6 gap-2">
-                        {PRESET_AVATARS.map((preset, idx) => (
-                          <div
-                            key={idx}
-                            onClick={() => {
-                              sounds.playSelect();
-                              setAvatarUrl(preset.url);
-                            }}
-                            className={`aspect-square bg-white border-2 cursor-pointer hover:border-shonen-orange transition-all p-0.5 overflow-hidden flex items-center justify-center ${
-                              avatarUrl === preset.url ? 'border-shonen-orange ring-1 ring-shonen-orange' : 'border-gray-200'
-                            }`}
-                            title={preset.name}
-                          >
-                            <img src={preset.url} alt={preset.name} className="w-full h-full object-cover" />
+                      
+                      {/* Presets Selector Row */}
+                      {showPresetSelector && (
+                        <div className="mt-1 border-t border-dashed border-gray-200 pt-2.5 w-full">
+                          <p className="text-[8px] font-mono text-gray-400 uppercase mb-2 text-center font-bold tracking-wider">SELECT RETRO FIGHTER PORTRAITS & CROP</p>
+                          <div className="grid grid-cols-6 gap-2">
+                            {PRESET_AVATARS.map((preset, idx) => (
+                              <div
+                                key={idx}
+                                onClick={() => {
+                                  sounds.playSelect();
+                                  setRawImageUrl(preset.url);
+                                }}
+                                className={`aspect-square bg-white border-2 cursor-pointer hover:border-shonen-orange transition-all p-0.5 overflow-hidden flex items-center justify-center ${
+                                  avatarUrl === preset.url ? 'border-shonen-orange ring-1 ring-shonen-orange' : 'border-gray-200'
+                                }`}
+                                title={preset.name}
+                              >
+                                <img src={preset.url} alt={preset.name} className="w-full h-full object-cover" />
+                              </div>
+                            ))}
                           </div>
-                        ))}
-                      </div>
+                        </div>
+                      )}
                     </div>
                   )}
                 </div>
@@ -287,11 +324,11 @@ export default function ProfileSetupModal({
                       setUsername(e.target.value.toUpperCase());
                     }}
                     placeholder="ENTER OPERATOR CALLSIGN..."
-                    maxLength={20}
+                    maxLength={10}
                     className="w-full bg-white border-2 border-gray-200 hover:border-gray-300 focus:border-shonen-orange px-3.5 py-2.5 font-mono text-xs text-gray-950 placeholder-gray-400 focus:outline-none transition-all"
                   />
                   <p className="text-[9px] font-mono text-gray-400 mt-1 uppercase">
-                    3-20 CHARACTER CODES, RENDERED NATIVELY ON STREAM GRID.
+                    3-10 CHARACTER CODES, RENDERED NATIVELY ON STREAM GRID.
                   </p>
                 </div>
 

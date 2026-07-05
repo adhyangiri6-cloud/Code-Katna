@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import { motion, AnimatePresence } from 'motion/react';
 import { Poll, DbComment, DbFollow } from '../types';
 import { sounds } from './SoundManager';
@@ -166,6 +166,8 @@ interface LivePollingGridProps {
   viewMode?: 'FEED' | 'GRID';
   onToggleViewMode?: (mode: 'FEED' | 'GRID') => void;
   allProfiles?: any[];
+  allVotes?: any[];
+  onUndoVote?: (pollId: string) => void;
 }
 
 export default function LivePollingGrid({ 
@@ -188,7 +190,9 @@ export default function LivePollingGrid({
   onActivateSpotlight,
   viewMode = 'FEED',
   onToggleViewMode,
-  allProfiles = []
+  allProfiles = [],
+  allVotes = [],
+  onUndoVote
 }: LivePollingGridProps) {
   
   // Track open comment sections per poll ID
@@ -198,17 +202,62 @@ export default function LivePollingGrid({
   const [commentInputs, setCommentInputs] = useState<Record<string, string>>({});
 
   // Local likes tracking to simulate double-tap or tap fires on posts
-  const [likedPolls, setLikedPolls] = useState<Record<string, boolean>>({});
-  const [extraLikes, setExtraLikes] = useState<Record<string, number>>({});
+  const [likedPolls, setLikedPolls] = useState<Record<string, boolean>>(() => {
+    try {
+      const uId = currentUser?.id || 'guest';
+      const stored = localStorage.getItem(`vote_arena_liked_polls_${uId}`);
+      return stored ? JSON.parse(stored) : {};
+    } catch {
+      return {};
+    }
+  });
+
+  const [extraLikes, setExtraLikes] = useState<Record<string, number>>(() => {
+    try {
+      const uId = currentUser?.id || 'guest';
+      const stored = localStorage.getItem(`vote_arena_extra_likes_${uId}`);
+      return stored ? JSON.parse(stored) : {};
+    } catch {
+      return {};
+    }
+  });
+
+  // Keep likes synced across logins/refreshes
+  useEffect(() => {
+    try {
+      const uId = currentUser?.id || 'guest';
+      const storedLiked = localStorage.getItem(`vote_arena_liked_polls_${uId}`);
+      setLikedPolls(storedLiked ? JSON.parse(storedLiked) : {});
+      
+      const storedExtra = localStorage.getItem(`vote_arena_extra_likes_${uId}`);
+      setExtraLikes(storedExtra ? JSON.parse(storedExtra) : {});
+    } catch (e) {
+      console.warn("Failed to load liked state", e);
+    }
+  }, [currentUser?.id]);
 
   const handleLike = (pollId: string) => {
     sounds.playSelect();
     const isLiked = likedPolls[pollId];
-    setLikedPolls(prev => ({ ...prev, [pollId]: !isLiked }));
-    setExtraLikes(prev => ({
-      ...prev,
-      [pollId]: (prev[pollId] || 0) + (isLiked ? -1 : 1)
-    }));
+    const newLiked = !isLiked;
+    
+    setLikedPolls(prev => {
+      const updated = { ...prev, [pollId]: newLiked };
+      const uId = currentUser?.id || 'guest';
+      localStorage.setItem(`vote_arena_liked_polls_${uId}`, JSON.stringify(updated));
+      return updated;
+    });
+
+    setExtraLikes(prev => {
+      const diff = newLiked ? 1 : -1;
+      const updated = {
+        ...prev,
+        [pollId]: (prev[pollId] || 0) + diff
+      };
+      const uId = currentUser?.id || 'guest';
+      localStorage.setItem(`vote_arena_extra_likes_${uId}`, JSON.stringify(updated));
+      return updated;
+    });
   };
 
   const getCategoryIcon = (category: string) => {
@@ -458,6 +507,8 @@ export default function LivePollingGrid({
             const isFollowingHost = isUserFollowing(hostClean);
             const isSelfHost = currentUser?.username?.toUpperCase() === hostClean;
             const isHostAdmin = hostClean === 'ADHYANGIRI6' || hostClean === 'ARENA_MOD_X';
+            const hostProfile = allProfiles?.find(p => p.username?.toUpperCase() === hostClean);
+            const hostAvatarUrl = hostProfile?.avatar_url;
 
             // Social likes line simulation
             const isLiked = !!likedPolls[poll.id];
@@ -486,14 +537,21 @@ export default function LivePollingGrid({
                       {/* Spinning story gradient ring around avatar */}
                       <div className="absolute inset-[-3px] rounded-full -z-10 insta-story-ring opacity-80" />
                       {/* Innermost circle container */}
-                      <div className="absolute inset-[1.5px] rounded-full bg-shonen-orange flex items-center justify-center text-white text-xs font-black">
-                        {animeConfig.avatarSymbol}
+                      <div className="absolute inset-[1.5px] rounded-full bg-shonen-orange flex items-center justify-center text-white text-xs font-black overflow-hidden">
+                        {hostAvatarUrl ? (
+                          <img src={hostAvatarUrl} alt={hostClean} className="w-full h-full object-cover" />
+                        ) : (
+                          animeConfig.avatarSymbol
+                        )}
                       </div>
                     </div>
 
                     <div>
                       <div className="flex items-center gap-1.5">
-                        <span className="font-sans text-xs font-extrabold text-gray-900 tracking-tight uppercase hover:underline cursor-pointer">
+                        <span className="font-sans text-xs font-extrabold text-gray-900 tracking-tight uppercase hover:underline cursor-pointer flex items-center gap-1.5">
+                          {hostAvatarUrl && (
+                            <img src={hostAvatarUrl} alt="" className="w-4 h-4 rounded-full object-cover border border-black/10 shrink-0" />
+                          )}
                           {hostClean}
                         </span>
                         {isHostAdmin && (
@@ -677,6 +735,22 @@ export default function LivePollingGrid({
                       const percent = optionTotal > 0 ? ((option.votes / optionTotal) * 100).toFixed(1) : '0.0';
                       const isSelected = poll.votedIndex === idx;
 
+                      // Calculate voter profiles for followed users who voted for this option
+                      const followedIds = (follows || [])
+                        .filter(f => f.follower_id === currentUser?.id)
+                        .map(f => f.following_id);
+
+                      const optionVoters = (allVotes || []).filter(v => {
+                        const votePollId = v.tournament_id;
+                        const optStr = v.selected_option || v.candidate_option;
+                        const voteOptIdx = optStr !== undefined && optStr !== null ? parseInt(optStr, 10) : -1;
+                        return votePollId === poll.id && voteOptIdx === idx && followedIds.includes(v.user_id);
+                      });
+
+                      const voterProfiles = optionVoters.map(v => {
+                        return (allProfiles || []).find(p => p.id === v.user_id);
+                      }).filter(Boolean);
+
                       // Assign colorful chakra gauges
                       const gaugeColor = idx === 0 
                         ? 'bg-gradient-to-r from-shonen-orange to-shonen-yellow' 
@@ -703,7 +777,25 @@ export default function LivePollingGrid({
                                 isSelected ? 'text-shonen-orange font-black' : 'text-gray-700'
                               }`}>
                                 {isSelected && <CheckCircle className="w-3.5 h-3.5 text-shonen-orange flex-shrink-0" />}
-                                {option.text.toUpperCase()}
+                                <span className="truncate">{option.text.toUpperCase()}</span>
+
+                                {/* Voter profile picture mini-icons for people you follow */}
+                                {voterProfiles.length > 0 && (
+                                  <div className="flex items-center -space-x-1 overflow-hidden shrink-0 select-none ml-1.5 bg-white/65 p-0.5 rounded-full border border-black/10">
+                                    {voterProfiles.map((prof) => (
+                                      <img
+                                        key={`${poll.id}-opt-${idx}-voter-${prof.id}`}
+                                        src={prof.avatar_url || 'https://images.unsplash.com/photo-1535713875002-d1d0cf377fde?auto=format&fit=crop&w=80&q=80'}
+                                        alt={prof.username}
+                                        title={`${prof.username?.toUpperCase()} (followed) voted for this`}
+                                        className="w-4 h-4 rounded-full border border-black/30 object-cover shrink-0 bg-white"
+                                        onError={(e) => {
+                                          e.currentTarget.src = 'https://images.unsplash.com/photo-1535713875002-d1d0cf377fde?auto=format&fit=crop&w=80&q=80';
+                                        }}
+                                      />
+                                    ))}
+                                  </div>
+                                )}
                               </span>
                               
                               <span className={`font-mono text-xs font-black z-10 ${
@@ -718,7 +810,26 @@ export default function LivePollingGrid({
                               onClick={() => handleOptionVote(poll.id, idx)}
                               className="w-full h-11 border-2 border-gray-200 hover:border-shonen-orange bg-white text-left font-sans text-xs font-black px-4 py-2 flex items-center justify-between transition-all duration-200 transform hover:translate-x-1 hover:bg-gray-50 cursor-pointer text-gray-800"
                             >
-                              <span className="uppercase tracking-wide">{option.text}</span>
+                              <span className="uppercase tracking-wide flex items-center gap-1.5 truncate">
+                                <span className="truncate">{option.text}</span>
+                                {/* Voter profile picture mini-icons for people you follow */}
+                                {voterProfiles.length > 0 && (
+                                  <div className="flex items-center -space-x-1 overflow-hidden shrink-0 select-none ml-1.5 bg-white/65 p-0.5 rounded-full border border-black/10">
+                                    {voterProfiles.map((prof) => (
+                                      <img
+                                        key={`${poll.id}-opt-${idx}-voter-${prof.id}`}
+                                        src={prof.avatar_url || 'https://images.unsplash.com/photo-1535713875002-d1d0cf377fde?auto=format&fit=crop&w=80&q=80'}
+                                        alt={prof.username}
+                                        title={`${prof.username?.toUpperCase()} (followed) voted for this`}
+                                        className="w-4 h-4 rounded-full border border-black/30 object-cover shrink-0 bg-white"
+                                        onError={(e) => {
+                                          e.currentTarget.src = 'https://images.unsplash.com/photo-1535713875002-d1d0cf377fde?auto=format&fit=crop&w=80&q=80';
+                                        }}
+                                      />
+                                    ))}
+                                  </div>
+                                )}
+                              </span>
                               <span className="text-[9px] font-mono text-shonen-orange font-bold tracking-widest shrink-0">
                                 [⚡ ACTIVATE]
                               </span>
@@ -727,6 +838,20 @@ export default function LivePollingGrid({
                         </div>
                       );
                     })}
+
+                    {hasVoted && onUndoVote && (
+                      <div className="flex justify-end pt-1">
+                        <button
+                          onClick={() => {
+                            sounds.playSelect();
+                            onUndoVote(poll.id);
+                          }}
+                          className="font-mono text-[9px] text-shonen-orange hover:text-shonen-red hover:underline font-extrabold uppercase tracking-widest cursor-pointer flex items-center gap-1"
+                        >
+                          [ ↩ UNDO / REMOVE MY VOTE ]
+                        </button>
+                      </div>
+                    )}
                   </div>
 
                   {/* Expand Comments Indicator */}
@@ -795,7 +920,21 @@ export default function LivePollingGrid({
                                     <div className="flex-1 min-w-0">
                                       <div className="flex items-center justify-between gap-1 mb-0.5">
                                         <div className="flex items-center gap-1.5 flex-wrap">
-                                          <span className="font-sans text-[10px] font-black text-gray-900 uppercase truncate max-w-[100px]">
+                                          <span className="font-sans text-[10px] font-black text-gray-900 uppercase truncate max-w-[100px] flex items-center gap-1">
+                                            {(() => {
+                                              const commenterProfile = allProfiles?.find(p => p.username?.toUpperCase() === commentUserClean);
+                                              const commenterAvatarUrl = commenterProfile?.avatar_url;
+                                              if (commenterAvatarUrl) {
+                                                return (
+                                                  <img 
+                                                    src={commenterAvatarUrl} 
+                                                    alt="" 
+                                                    className="w-3.5 h-3.5 rounded-full object-cover border border-black/10 shrink-0" 
+                                                  />
+                                                );
+                                              }
+                                              return null;
+                                            })()}
                                             {commentUserClean}
                                           </span>
                                           {isCommenterAdmin && (

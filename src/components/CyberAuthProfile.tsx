@@ -3,6 +3,7 @@ import { motion, AnimatePresence } from 'motion/react';
 import { User, HistoryItem, UserPreferences } from '../types';
 import { sounds } from './SoundManager';
 import { supabase } from '../lib/supabaseClient';
+import ImageCropper from './ImageCropper';
 import { 
   X, 
   Terminal, 
@@ -68,6 +69,7 @@ export default function CyberAuthProfile({
   const [prefSounds, setPrefSounds] = useState(true);
   const [prefBias, setPrefBias] = useState<'standard' | 'high-frequency' | 'sub-harmonic'>('standard');
   const [avatarUrl, setAvatarUrl] = useState('');
+  const [rawImageUrl, setRawImageUrl] = useState<string | null>(null);
   const [showPresetSelector, setShowPresetSelector] = useState(false);
 
   const fileInputRef = useRef<HTMLInputElement>(null);
@@ -360,10 +362,7 @@ export default function CyberAuthProfile({
     const reader = new FileReader();
     reader.onloadend = () => {
       const dataUrl = reader.result as string;
-      setAvatarUrl(dataUrl);
-      if (onUpdateAvatarUrl) {
-        onUpdateAvatarUrl(dataUrl);
-      }
+      setRawImageUrl(dataUrl);
       sounds.playTick();
     };
     reader.readAsDataURL(file);
@@ -777,101 +776,132 @@ export default function CyberAuthProfile({
                           OPERATOR AVATAR / PROFILE PICTURE
                         </span>
                         
-                        <div className="flex items-center gap-3">
-                          <div 
-                            onClick={() => {
-                              sounds.playTick();
-                              fileInputRef.current?.click();
+                        {rawImageUrl ? (
+                          <ImageCropper
+                            imageUrl={rawImageUrl}
+                            onCropComplete={(croppedUrl) => {
+                              setAvatarUrl(croppedUrl);
+                              setRawImageUrl(null);
+                              if (onUpdateAvatarUrl) {
+                                onUpdateAvatarUrl(croppedUrl);
+                              }
                             }}
-                            className="relative w-12 h-12 bg-white border-2 border-black cursor-pointer group shrink-0 flex items-center justify-center overflow-hidden hover:border-shonen-orange transition-all shadow-sm"
-                            title="Click to choose a file"
-                          >
-                            {avatarUrl ? (
-                              <img 
-                                src={avatarUrl} 
-                                alt="Avatar preview" 
-                                className="w-full h-full object-cover"
-                                onError={(e) => {
-                                  (e.target as HTMLImageElement).src = `https://api.dicebear.com/7.x/bottts/svg?seed=${currentUser?.username || 'OPERATOR'}`;
-                                }}
-                              />
-                            ) : (
-                              <div className="flex flex-col items-center justify-center text-gray-400 group-hover:text-shonen-orange transition-colors">
-                                <Camera className="w-4 h-4 mb-0.5" />
-                                <span className="text-[6px] font-mono font-black uppercase">ADD PIC</span>
-                              </div>
-                            )}
-                            <div className="absolute inset-0 bg-black/40 opacity-0 group-hover:opacity-100 flex items-center justify-center transition-opacity">
-                              <span className="text-[8px] font-mono font-bold text-white uppercase text-center leading-none">UPLOAD</span>
-                            </div>
-                          </div>
-
-                          <div className="flex-1 space-y-1.5">
-                            <div className="flex gap-1.5">
-                              <button
-                                type="button"
+                            onCancel={() => {
+                              setRawImageUrl(null);
+                            }}
+                          />
+                        ) : (
+                          <div className="flex flex-col gap-2.5">
+                            <div className="flex items-center gap-3">
+                              <div 
                                 onClick={() => {
                                   sounds.playTick();
                                   fileInputRef.current?.click();
                                 }}
-                                className="flex-1 bg-white border border-gray-300 text-gray-700 hover:border-black text-[8px] font-mono font-black py-1 px-1.5 uppercase transition-all text-center cursor-pointer"
+                                className="relative w-12 h-12 bg-white border-2 border-black cursor-pointer group shrink-0 flex items-center justify-center overflow-hidden hover:border-shonen-orange transition-all shadow-sm"
+                                title="Click to choose a file"
                               >
-                                [ CHOOSE FILE ]
-                              </button>
-                              <button
-                                type="button"
-                                onClick={() => {
-                                  sounds.playTick();
-                                  setShowPresetSelector(!showPresetSelector);
-                                }}
-                                className="flex-1 bg-white border border-gray-300 text-gray-700 hover:border-black text-[8px] font-mono font-black py-1 px-1.5 uppercase transition-all text-center cursor-pointer"
-                              >
-                                [ PRESETS ]
-                              </button>
+                                {avatarUrl ? (
+                                  <img 
+                                    src={avatarUrl} 
+                                    alt="Avatar preview" 
+                                    className="w-full h-full object-cover"
+                                    onError={(e) => {
+                                      (e.target as HTMLImageElement).src = `https://api.dicebear.com/7.x/bottts/svg?seed=${currentUser?.username || 'OPERATOR'}`;
+                                    }}
+                                  />
+                                ) : (
+                                  <div className="flex flex-col items-center justify-center text-gray-400 group-hover:text-shonen-orange transition-colors">
+                                    <Camera className="w-4 h-4 mb-0.5" />
+                                    <span className="text-[6px] font-mono font-black uppercase">ADD PIC</span>
+                                  </div>
+                                )}
+                                <div className="absolute inset-0 bg-black/40 opacity-0 group-hover:opacity-100 flex items-center justify-center transition-opacity">
+                                  <span className="text-[8px] font-mono font-bold text-white uppercase text-center leading-none">UPLOAD</span>
+                                </div>
+                              </div>
+
+                              <div className="flex-1 space-y-1.5">
+                                <div className="flex gap-1.5">
+                                  <button
+                                    type="button"
+                                    onClick={() => {
+                                      sounds.playTick();
+                                      fileInputRef.current?.click();
+                                    }}
+                                    className="flex-1 bg-white border border-gray-300 text-gray-700 hover:border-black text-[8px] font-mono font-black py-1 px-1.5 uppercase transition-all text-center cursor-pointer"
+                                  >
+                                    [ CHOOSE FILE ]
+                                  </button>
+                                  <button
+                                    type="button"
+                                    onClick={() => {
+                                      sounds.playTick();
+                                      setShowPresetSelector(!showPresetSelector);
+                                    }}
+                                    className="flex-1 bg-white border border-gray-300 text-gray-700 hover:border-black text-[8px] font-mono font-black py-1 px-1.5 uppercase transition-all text-center cursor-pointer"
+                                  >
+                                    [ PRESETS ]
+                                  </button>
+                                </div>
+
+                                <div className="flex gap-1">
+                                  <input
+                                    type="text"
+                                    placeholder="OR ENTER IMAGE URL..."
+                                    value={avatarUrl && !avatarUrl.startsWith('data:') ? avatarUrl : ''}
+                                    onChange={(e) => {
+                                      setAvatarUrl(e.target.value);
+                                    }}
+                                    className="flex-1 bg-white border border-gray-300 hover:border-gray-400 focus:border-shonen-orange px-1.5 py-1 font-mono text-[8px] text-gray-950 placeholder-gray-400 focus:outline-none transition-all"
+                                  />
+                                  {avatarUrl && !avatarUrl.startsWith('data:') && (
+                                    <button
+                                      type="button"
+                                      onClick={() => {
+                                        sounds.playTick();
+                                        setRawImageUrl(avatarUrl);
+                                      }}
+                                      className="bg-shonen-orange text-white text-[8px] font-mono font-black px-1.5 py-1 uppercase animate-pulse"
+                                    >
+                                      CROP
+                                    </button>
+                                  )}
+                                </div>
+                              </div>
                             </div>
 
                             <input
-                              type="text"
-                              placeholder="OR PASTE IMAGE URL FROM WEB..."
-                              value={avatarUrl}
-                              onChange={(e) => {
-                                sounds.playTick();
-                                setAvatarUrl(e.target.value);
-                              }}
-                              className="w-full bg-white border border-gray-300 hover:border-gray-400 focus:border-shonen-orange px-1.5 py-1 font-mono text-[8px] text-gray-950 placeholder-gray-400 focus:outline-none transition-all"
+                              type="file"
+                              ref={fileInputRef}
+                              onChange={handleFileChange}
+                              accept="image/*"
+                              className="hidden"
                             />
-                          </div>
-                        </div>
-
-                        <input
-                          type="file"
-                          ref={fileInputRef}
-                          onChange={handleFileChange}
-                          accept="image/*"
-                          className="hidden"
-                        />
-                        
-                        {/* Presets Selector Row */}
-                        {showPresetSelector && (
-                          <div className="mt-1 border-t border-dashed border-gray-200 pt-2 w-full">
-                            <p className="text-[7px] font-mono text-gray-400 uppercase mb-1.5 text-center font-bold tracking-wider">SELECT RETRO FIGHTER PORTRAITS</p>
-                            <div className="grid grid-cols-6 gap-1.5">
-                              {PRESET_AVATARS.map((preset, idx) => (
-                                <div
-                                  key={idx}
-                                  onClick={() => {
-                                    sounds.playSelect();
-                                    setAvatarUrl(preset.url);
-                                  }}
-                                  className={`aspect-square bg-white border cursor-pointer hover:border-shonen-orange transition-all p-0.5 overflow-hidden flex items-center justify-center ${
-                                    avatarUrl === preset.url ? 'border-shonen-orange ring-1' : 'border-gray-200'
-                                  }`}
-                                  title={preset.name}
-                                >
-                                  <img src={preset.url} alt={preset.name} className="w-full h-full object-cover" />
+                            
+                            {/* Presets Selector Row */}
+                            {showPresetSelector && (
+                              <div className="mt-1 border-t border-dashed border-gray-200 pt-2 w-full">
+                                <p className="text-[7px] font-mono text-gray-400 uppercase mb-1.5 text-center font-bold tracking-wider">SELECT RETRO FIGHTER PORTRAITS & CROP</p>
+                                <div className="grid grid-cols-6 gap-1.5">
+                                  {PRESET_AVATARS.map((preset, idx) => (
+                                    <div
+                                      key={idx}
+                                      onClick={() => {
+                                        sounds.playSelect();
+                                        setRawImageUrl(preset.url);
+                                      }}
+                                      className={`aspect-square bg-white border cursor-pointer hover:border-shonen-orange transition-all p-0.5 overflow-hidden flex items-center justify-center ${
+                                        avatarUrl === preset.url ? 'border-shonen-orange ring-1' : 'border-gray-200'
+                                      }`}
+                                      title={preset.name}
+                                    >
+                                      <img src={preset.url} alt={preset.name} className="w-full h-full object-cover" />
+                                    </div>
+                                  ))}
                                 </div>
-                              ))}
-                            </div>
+                              </div>
+                            )}
                           </div>
                         )}
                       </div>

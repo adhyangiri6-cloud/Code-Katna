@@ -25,6 +25,7 @@ interface OperatorProfileModalProps {
   blockedUsers?: string[];
   onBlock?: (id: string) => void;
   onUnblock?: (id: string) => void;
+  polls?: any[];
 }
 
 export default function OperatorProfileModal({
@@ -38,7 +39,8 @@ export default function OperatorProfileModal({
   onOpenDirectChat,
   blockedUsers = [],
   onBlock,
-  onUnblock
+  onUnblock,
+  polls = []
 }: OperatorProfileModalProps) {
   const [followerCount, setFollowerCount] = useState<number>(0);
   const [isMutuallyFollowing, setIsMutuallyFollowing] = useState<boolean>(false);
@@ -191,6 +193,9 @@ export default function OperatorProfileModal({
                 </div>
                 <div className="min-w-0 flex-1">
                   <h3 className="text-xl font-extrabold text-gray-950 uppercase tracking-tight flex items-center gap-1.5 truncate">
+                    {profile.avatar_url && (
+                      <img src={profile.avatar_url} alt="" className="w-6 h-6 rounded-full border border-black/10 object-cover shrink-0" />
+                    )}
                     {profile.username}
                     {profile.is_premium && (
                       <span className="font-mono text-[8px] bg-shonen-orange text-white px-1 py-0.5 border border-black rounded-none">
@@ -363,6 +368,76 @@ export default function OperatorProfileModal({
                     </span>
                   </motion.button>
                 )}
+                {/* USER TRANSMISSIONS (POSTS) */}
+                <div className="bg-gray-50 border-2 border-black p-4 space-y-3 mt-4">
+                  <div className="flex items-center justify-between border-b-2 border-black pb-2 mb-1">
+                    <span className="font-mono text-[10px] font-black text-shonen-orange tracking-widest uppercase flex items-center gap-1.5">
+                      <Radio className="w-3.5 h-3.5 animate-pulse shrink-0" />
+                      TRANSMISSIONS ({polls.filter(p => p.hostName?.toUpperCase() === profile.username?.toUpperCase() || p.user_id === profile.id).length})
+                    </span>
+                    <span className="font-mono text-[8px] text-gray-400">
+                      HOSTED SECTORS
+                    </span>
+                  </div>
+
+                  {(() => {
+                    const userPolls = polls.filter(
+                      p => p.hostName?.toUpperCase() === profile.username?.toUpperCase() || p.user_id === profile.id
+                    );
+
+                    if (userPolls.length === 0) {
+                      return (
+                        <p className="text-[10px] text-gray-400 font-mono text-center py-4 uppercase">
+                          NO ACTIVE TRANSMISSIONS SIGNALED IN THIS NODE.
+                        </p>
+                      );
+                    }
+
+                    return (
+                      <div className="space-y-2 max-h-[220px] overflow-y-auto pr-1">
+                        {userPolls.map((p) => {
+                          return (
+                            <div key={p.id} className="border border-black p-2.5 bg-white space-y-1.5 transition-all hover:bg-shonen-orange/5">
+                              <div className="flex justify-between items-center">
+                                <span className="bg-black text-white font-mono text-[7px] px-1.5 py-0.5 uppercase tracking-widest rounded-xs font-bold">
+                                  {p.category || 'ARENA'}
+                                </span>
+                                <span className="font-mono text-[8px] text-gray-500 font-bold">
+                                  {p.totalVotes || 0} VOTES
+                                </span>
+                              </div>
+                              <p className="font-sans text-xs font-extrabold text-gray-900 uppercase tracking-tight line-clamp-2 leading-tight">
+                                {p.title}
+                              </p>
+
+                              <button
+                                onClick={() => {
+                                  sounds.playPunchyCTA();
+                                  onClose();
+                                  setTimeout(() => {
+                                    const element = document.getElementById(`feed-post-${p.id}`);
+                                    if (element) {
+                                      element.scrollIntoView({ behavior: 'smooth', block: 'center' });
+                                      element.classList.add('flash-neon-glow');
+                                      setTimeout(() => {
+                                        element.classList.remove('flash-neon-glow');
+                                      }, 3500);
+                                    } else {
+                                      alert("COORDINATES NOT FOUND // Post may have been de-synchronized.");
+                                    }
+                                  }, 300);
+                                }}
+                                className="w-full py-1.5 border-2 border-black hover:bg-black hover:text-white transition-all text-center font-mono text-[9px] font-black uppercase tracking-wider bg-white cursor-pointer"
+                              >
+                                [ 🎯 ANCHOR TO MAIN FEED ]
+                              </button>
+                            </div>
+                          );
+                        })}
+                      </div>
+                    );
+                  })()}
+                </div>
               </div>
             </div>
           </motion.div>

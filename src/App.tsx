@@ -31,7 +31,8 @@ import {
   Search,
   Sparkles,
   Monitor,
-  Bell
+  Bell,
+  MessageSquare
 } from 'lucide-react';
 
 const memoryStorage: Record<string, string> = {};
@@ -87,13 +88,35 @@ export default function App() {
   const [navSearch, setNavSearch] = useState('');
   const [navSearchResults, setNavSearchResults] = useState<any[]>([]);
   const [allProfiles, setAllProfiles] = useState<any[]>([]);
+  const [allVotes, setAllVotes] = useState<any[]>([]);
+  const [messagesTick, setMessagesTick] = useState(0);
+
+  const fetchAllVotes = async () => {
+    try {
+      const { data, error } = await supabase.from('votes').select('*');
+      if (!error && data) {
+        setAllVotes(data);
+      }
+    } catch (err) {
+      console.warn('Failed to fetch all votes:', err);
+    }
+  };
+
+  useEffect(() => {
+    const handleRecalc = () => {
+      setMessagesTick(t => t + 1);
+    };
+    window.addEventListener('recalc-unread-messages', handleRecalc);
+    return () => window.removeEventListener('recalc-unread-messages', handleRecalc);
+  }, []);
+
   const [selectedProfile, setSelectedProfile] = useState<any | null>(null);
   const [isProfileModalOpen, setIsProfileModalOpen] = useState(false);
   const [pollToShare, setPollToShare] = useState<any | null>(null);
   const [isShareModalOpen, setIsShareModalOpen] = useState(false);
 
   const getMentions = () => {
-    return [
+    const staticMentions = [
       {
         id: 'm1',
         sender: 'chicapola',
@@ -119,6 +142,79 @@ export default function App() {
         sourceId: 'edgerunners-akira'
       }
     ];
+
+    let chatMentions: any[] = [];
+    try {
+      const uId = currentUser?.id;
+      if (uId) {
+        const localMsgs = JSON.parse(localStorage.getItem('vote_arena_messages') || '[]');
+        const blocked = blockedUsers || [];
+        const receivedMsgs = localMsgs.filter((m: any) => 
+          m.receiver_id === uId && 
+          m.sender_id !== uId &&
+          !m.text.startsWith('[SYSTEM_GC_CREATED]') &&
+          !blocked.includes(m.sender_id)
+        );
+
+        chatMentions = receivedMsgs.map((m: any) => {
+          let senderUsername = m.sender_username;
+          if (!senderUsername) {
+            const senderProf = allProfiles?.find(p => p.id === m.sender_id);
+            senderUsername = senderProf?.username || 'ANONYMOUS OPERATOR';
+          }
+
+          let cleanText = m.text;
+          if (cleanText.startsWith('[GC_MSG]')) {
+            try {
+              const payload = JSON.parse(cleanText.substring(8).trim());
+              cleanText = payload.text;
+              senderUsername = payload.senderUsername || senderUsername;
+            } catch {}
+          }
+
+          return {
+            id: m.id,
+            sender: senderUsername,
+            senderId: m.sender_id,
+            text: cleanText,
+            timestamp: new Date(m.created_at).getTime(),
+            sourceTitle: 'COMBAT COMMUNICATIONS DIRECT MSG',
+            sourceId: 'direct-message',
+            isChat: true
+          };
+        });
+      }
+    } catch (e) {
+      console.warn("Failed to derive chat mentions", e);
+    }
+
+    const combined = [...chatMentions, ...staticMentions];
+    combined.sort((a, b) => b.timestamp - a.timestamp);
+    return combined;
+  };
+
+  const getUnreadMentionsCount = () => {
+    try {
+      const uId = currentUser?.id || 'guest';
+      const seenStored = localStorage.getItem(`vote_arena_seen_notifications_${uId}`);
+      if (hasCheckedNotifications) return 0;
+      const seenIds = seenStored ? JSON.parse(seenStored) : [];
+      const currentMentions = getMentions();
+      const unread = currentMentions.filter(m => !seenIds.includes(m.id));
+      return unread.length;
+    } catch (e) {
+      return 0;
+    }
+  };
+
+  const markNotificationsAsSeen = () => {
+    try {
+      const uId = currentUser?.id || 'guest';
+      const currentMentions = getMentions();
+      const mentionIds = currentMentions.map(m => m.id);
+      localStorage.setItem(`vote_arena_seen_notifications_${uId}`, JSON.stringify(mentionIds));
+      setHasCheckedNotifications(true);
+    } catch (e) {}
   };
 
   // Fetch profiles from Supabase profiles table
@@ -135,7 +231,11 @@ export default function App() {
 
   useEffect(() => {
     fetchAllProfiles();
-    const interval = setInterval(fetchAllProfiles, 12000);
+    fetchAllVotes();
+    const interval = setInterval(() => {
+      fetchAllProfiles();
+      fetchAllVotes();
+    }, 12000);
     return () => clearInterval(interval);
   }, []);
 
@@ -206,6 +306,37 @@ export default function App() {
       console.error(e);
     }
   };
+
+  // Chat message unread count for message icon notification
+  const [unreadChatCount, setUnreadChatCount] = useState(() => {
+    try {
+      return Number(localStorage.getItem('vote_arena_total_unread_chat_count') || '0');
+    } catch {
+      return 0;
+    }
+  });
+
+  useEffect(() => {
+    const updateCount = () => {
+      try {
+        const count = Number(localStorage.getItem('vote_arena_total_unread_chat_count') || '0');
+        setUnreadChatCount(count);
+      } catch (e) {
+        console.warn(e);
+      }
+    };
+
+    // Update count when custom event is dispatched
+    window.addEventListener('recalc-unread-messages', updateCount);
+
+    // Also run a 3-second polling interval as fallback
+    const interval = setInterval(updateCount, 3000);
+
+    return () => {
+      window.removeEventListener('recalc-unread-messages', updateCount);
+      clearInterval(interval);
+    };
+  }, []);
 
   const [isAuthOpen, setIsAuthOpen] = useState(false);
   const [isLoggedIn, setIsLoggedIn] = useState(() => {
@@ -1041,7 +1172,7 @@ export default function App() {
       let updatedPoll = { ...p };
 
       // Overwrite options & totalVotes if it's a seed or local-only poll and has stored stats
-      const isSeedOrLocal = ['movie-2026', 'physics-11', 'community-adapt'].includes(p.id) || !/^\d+$/.test(p.id) || !p.user_id;
+      const isSeedOrLocal = ['movie-2026', 'physics-11', 'community-adapt'].includes(p.id) || (!/^\d+$/.test(p.id) && !p.user_id);
       if (isSeedOrLocal && localStats[p.id]) {
         updatedPoll.options = localStats[p.id].options;
         updatedPoll.totalVotes = localStats[p.id].totalVotes;
@@ -1201,36 +1332,53 @@ export default function App() {
     } else {
       console.log("POLLS LOADED:", data); // Check your console F12 to see if they are here
       if (data) {
-        const mapped: Poll[] = data.map((p: any) => ({
-          id: p.id,
-          title: p.title,
-          category: p.category,
-          description: p.description,
-          totalVotes: p.total_votes || p.totalVotes || 0,
-          options: p.options || [],
-          votedIndex: p.voted_index !== undefined ? p.voted_index : p.votedIndex,
-          hostName: p.host_name || p.hostName || 'GATEKEEPER',
-          is_priority: p.is_priority || false,
-          is_spotlight: p.is_spotlight || false,
-          is_pending_verification: p.is_pending_verification || false,
-          verification_utr: p.verification_utr || '',
-          created_at: p.created_at,
-          expires_at: p.expires_at,
-          user_id: p.user_id,
-          comments_enabled: p.comments_enabled || false
-        }));
+        const mapped: Poll[] = data.map((p: any) => {
+          const rawOptions = p.options || [];
+          const formattedOptions = rawOptions.map((opt: any) => {
+            if (typeof opt === 'string') {
+              return { text: opt, votes: 0 };
+            }
+            return { text: opt?.text || '', votes: opt?.votes || 0 };
+          });
+
+          return {
+            id: p.id,
+            title: p.question || p.title || '',
+            category: p.category || 'ARENA',
+            description: p.description || '',
+            totalVotes: p.total_votes || p.totalVotes || 0,
+            options: formattedOptions,
+            votedIndex: p.voted_index !== undefined ? p.voted_index : p.votedIndex,
+            hostName: p.host_name || p.hostName || 'GATEKEEPER',
+            is_priority: p.is_priority || false,
+            is_spotlight: p.is_featured || p.is_spotlight || false,
+            is_pending_verification: p.is_pending_verification || false,
+            verification_utr: p.verification_utr || '',
+            created_at: p.created_at,
+            expires_at: p.expires_at,
+            user_id: p.user_id,
+            comments_enabled: p.comments_enabled || false
+          };
+        });
         
         setPolls(prev => {
-          const seen = new Set<string>();
-          const uniqueMapped = mapped.filter(p => {
-            if (seen.has(p.id)) return false;
-            seen.add(p.id);
-            return true;
+          const prevMap = new Map<string, Poll>();
+          prev.forEach(p => prevMap.set(p.id, p));
+
+          const mergedList = prev.map(p => {
+            const sharedPoll = mapped.find(sp => sp.id === p.id);
+            if (sharedPoll) {
+              return {
+                ...p,
+                is_spotlight: p.is_spotlight || sharedPoll.is_spotlight
+              };
+            }
+            return p;
           });
-          const existingIds = new Set(uniqueMapped.map(p => p.id));
-          const uniqueSeed = prev.filter(p => !existingIds.has(p.id));
-          const combined = [...uniqueMapped, ...uniqueSeed];
-          
+
+          const newSharedPolls = mapped.filter(sp => !prevMap.has(sp.id));
+          const combined = [...mergedList, ...newSharedPolls];
+
           const finalSeen = new Set<string>();
           const merged = combined.filter(p => {
             if (finalSeen.has(p.id)) return false;
@@ -1268,9 +1416,34 @@ export default function App() {
     const targetPoll = polls.find(p => p.id === pollId);
     if (!targetPoll) return;
 
+    // Check 1: In-memory state check
     if (targetPoll.votedIndex !== undefined) {
       sounds.playError();
-      alert("ARENA SECURITY PROTOCOL // You are permitted to vote only once per poll.");
+      alert("ALREADY VOTED // You have already cast a vote on this poll. Please undo your previous vote if you wish to change it.");
+      return;
+    }
+
+    // Check 2: Local storage check
+    const uId = currentUser.id;
+    let localVotes: Record<string, number> = {};
+    try {
+      const stored = localStorage.getItem(`vote_arena_cast_votes_${uId}`);
+      if (stored) {
+        localVotes = JSON.parse(stored);
+      }
+    } catch (e) {}
+
+    if (localVotes[pollId] !== undefined) {
+      sounds.playError();
+      alert("ALREADY VOTED // You have already cast a vote on this poll. Please undo your previous vote if you wish to change it.");
+      return;
+    }
+
+    // Check 3: Database votes cache check
+    const dbVoteExists = (allVotes || []).some(v => v.user_id === currentUser.id && v.tournament_id === pollId);
+    if (dbVoteExists) {
+      sounds.playError();
+      alert("ALREADY VOTED // You have already cast a vote on this poll. Please undo your previous vote if you wish to change it.");
       return;
     }
 
@@ -1284,42 +1457,39 @@ export default function App() {
     };
     const totalVotes = (targetPoll.totalVotes || 0) + 1;
 
-    const isNumericId = /^\d+$/.test(pollId);
+    // Update standard polls table first
+    try {
+      await supabase
+        .from('polls')
+        .update({
+          options: updatedOptions,
+          total_votes: totalVotes
+        })
+        .eq('id', pollId);
+    } catch (e) {
+      console.warn("Aggregate polls sync warning:", e);
+    }
 
-    if (isNumericId) {
-      try {
-        await supabase
-          .from('polls')
-          .update({
-            options: updatedOptions,
-            total_votes: totalVotes
-          })
-          .eq('id', pollId);
-      } catch (e) {
-        console.warn("Aggregate polls sync warning:", e);
+    // We are including candidate_option AND tournament_id AND selected_option
+    // to satisfy every single constraint at once and upsert gracefully.
+    try {
+      const { error } = await supabase
+        .from('votes')
+        .upsert(
+          { 
+            user_id: currentUser.id, 
+            tournament_id: pollId, 
+            candidate_option: optionIndex.toString(),
+            selected_option: optionIndex.toString()
+          },
+          { onConflict: 'user_id, tournament_id' }
+        );
+
+      if (error) {
+        console.warn("Database vote registration skipped due to foreign key or schema constraints (falling back to local session state):", error.message);
       }
-
-      // We are including candidate_option AND tournament_id AND selected_option
-      // to satisfy every single constraint at once and upsert gracefully.
-      try {
-        const { error } = await supabase
-          .from('votes')
-          .upsert(
-            { 
-              user_id: currentUser.id, 
-              tournament_id: pollId, 
-              candidate_option: optionIndex.toString(),
-              selected_option: optionIndex.toString()
-            },
-            { onConflict: 'user_id, tournament_id' }
-          );
-
-        if (error) {
-          console.warn("Database vote registration skipped due to foreign key or schema constraints (falling back to local session state):", error.message);
-        }
-      } catch (dbErr) {
-        console.warn("Database vote registration exception (falling back to local session state):", dbErr);
-      }
+    } catch (dbErr) {
+      console.warn("Database vote registration exception (falling back to local session state):", dbErr);
     }
 
     // Update local state immediately to show the new vote tally
@@ -1384,10 +1554,128 @@ export default function App() {
       console.warn("Could not save updated vote to localStorage:", e);
     }
 
-    if (isNumericId) {
+    try {
       fetchActivePolls(); 
-    }
+      fetchPolls();
+    } catch (e) {}
     alert("SUCCESS // Vote anchored to the grid.");
+  };
+
+  const handleRemoveVote = async (pollId: string) => {
+    if (!currentUser) {
+      sounds.playError();
+      alert("AUTHENTICATION REQUIRED // Log in to participate in the arena.");
+      return;
+    }
+
+    const targetPoll = polls.find(p => p.id === pollId);
+    if (!targetPoll || targetPoll.votedIndex === undefined) return;
+
+    const optionIndex = targetPoll.votedIndex;
+
+    const updatedOptions = [...targetPoll.options];
+    if (updatedOptions[optionIndex]) {
+      updatedOptions[optionIndex] = {
+        ...updatedOptions[optionIndex],
+        votes: Math.max(0, (updatedOptions[optionIndex].votes || 0) - 1)
+      };
+    }
+    const totalVotes = Math.max(0, (targetPoll.totalVotes || 0) - 1);
+
+    try {
+      await supabase
+        .from('polls')
+        .update({
+          options: updatedOptions,
+          total_votes: totalVotes
+        })
+        .eq('id', pollId);
+    } catch (e) {
+      console.warn("Aggregate polls sync warning on undo:", e);
+    }
+
+    try {
+      const { error } = await supabase
+        .from('votes')
+        .delete()
+        .eq('user_id', currentUser.id)
+        .eq('tournament_id', pollId);
+
+      if (error) {
+        console.warn("Database vote retraction skipped:", error.message);
+      }
+    } catch (dbErr) {
+      console.warn("Database vote retraction exception:", dbErr);
+    }
+
+    try {
+      const uId = currentUser?.id || 'guest';
+      const storedCast = localStorage.getItem(`vote_arena_cast_votes_${uId}`);
+      if (storedCast) {
+        const castVotes = JSON.parse(storedCast);
+        delete castVotes[pollId];
+        localStorage.setItem(`vote_arena_cast_votes_${uId}`, JSON.stringify(castVotes));
+      }
+    } catch (e) {
+      console.warn("Could not remove cast vote status from localStorage:", e);
+    }
+
+    try {
+      const stored = localStorage.getItem('vote_arena_hosted_polls');
+      if (stored) {
+        const localPolls = JSON.parse(stored);
+        const updated = localPolls.map((p: any) => {
+          if (p.id !== pollId) return p;
+          const uOptions = [...p.options];
+          if (uOptions[optionIndex]) {
+            uOptions[optionIndex] = {
+              ...uOptions[optionIndex],
+              votes: Math.max(0, (uOptions[optionIndex].votes || 0) - 1)
+            };
+          }
+          return {
+            ...p,
+            options: uOptions,
+            totalVotes: Math.max(0, (p.totalVotes || 0) - 1),
+            votedIndex: undefined
+          };
+        });
+        localStorage.setItem('vote_arena_hosted_polls', JSON.stringify(updated));
+      }
+    } catch (e) {
+      console.warn("Could not update local copy on undo:", e);
+    }
+
+    try {
+      const storedLocalStats = localStorage.getItem('vote_arena_local_poll_stats');
+      if (storedLocalStats) {
+        const localStats = JSON.parse(storedLocalStats);
+        if (localStats[pollId]) {
+          localStats[pollId] = {
+            options: updatedOptions,
+            totalVotes: totalVotes
+          };
+          localStorage.setItem('vote_arena_local_poll_stats', JSON.stringify(localStats));
+        }
+      }
+    } catch (e) {}
+
+    setPolls(prev => prev.map(p => {
+      if (p.id !== pollId) return p;
+      return {
+        ...p,
+        options: updatedOptions,
+        votedIndex: undefined,
+        totalVotes
+      };
+    }));
+
+    try {
+      fetchActivePolls(); 
+      fetchPolls();
+      fetchAllVotes();
+    } catch (e) {}
+    alert("SUCCESS // Vote retracted from the grid.");
   };
 
   // 2. UNIFIED PERSISTENT SPOTLIGHT ACTIVATOR
@@ -2093,7 +2381,11 @@ export default function App() {
               }}
               className="bg-white border-2 border-shonen-orange text-gray-900 font-mono text-[10px] md:text-xs font-black px-3 py-1.5 uppercase tracking-wide flex items-center gap-2 transition-all hover:bg-shonen-orange hover:text-white shadow-sm cursor-pointer"
             >
-              <div className="w-2 h-2 bg-emerald-500 rounded-full animate-pulse shrink-0" />
+              {currentUser.avatar_url ? (
+                <img src={currentUser.avatar_url} alt="" className="w-5 h-5 rounded-full border border-black/10 object-cover shrink-0" />
+              ) : (
+                <div className="w-2 h-2 bg-emerald-500 rounded-full animate-pulse shrink-0" />
+              )}
               <span className="truncate max-w-[80px] sm:max-w-[120px]">OP: {currentUser.username.toUpperCase()}</span>
             </motion.button>
           ) : (
@@ -2116,15 +2408,34 @@ export default function App() {
               onClick={() => {
                 sounds.playSelect();
                 setIsNotificationOpen(true);
-                setHasCheckedNotifications(true);
+                markNotificationsAsSeen();
               }}
               title="Neural Mentions (Notifications)"
               className="p-2 border-2 border-shonen-orange/30 text-shonen-orange hover:bg-shonen-orange/5 hover:border-shonen-orange/70 transition-all duration-200 rounded-sm relative cursor-pointer"
             >
               <Bell className="w-4 h-4" />
-              {!hasCheckedNotifications && getMentions().length > 0 && (
-                <span className="absolute -top-1.5 -right-1.5 bg-shonen-orange text-white text-[8px] font-black w-4.5 h-4.5 rounded-full flex items-center justify-center animate-pulse border border-white">
-                  {getMentions().length}
+              {getUnreadMentionsCount() > 0 && (
+                <span className="absolute -top-1.5 -right-1.5 bg-shonen-red text-white text-[8px] font-black w-4.5 h-4.5 rounded-full flex items-center justify-center animate-bounce border border-black z-10 shadow-sm">
+                  {getUnreadMentionsCount()}
+                </span>
+              )}
+            </button>
+          </div>
+
+          {/* DIRECT MESSAGES ICON PORT */}
+          <div className="relative">
+            <button
+              onClick={() => {
+                sounds.playSelect();
+                window.dispatchEvent(new CustomEvent('open-combat-comms'));
+              }}
+              title="Tactical Comms (Direct Messages)"
+              className="p-2 border-2 border-shonen-orange/30 text-shonen-orange hover:bg-shonen-orange/5 hover:border-shonen-orange/70 transition-all duration-200 rounded-sm relative cursor-pointer"
+            >
+              <MessageSquare className="w-4 h-4" />
+              {unreadChatCount > 0 && (
+                <span className="absolute -top-1.5 -right-1.5 bg-red-600 text-white text-[8px] font-black w-4.5 h-4.5 rounded-full flex items-center justify-center animate-pulse border border-white">
+                  {unreadChatCount}
                 </span>
               )}
             </button>
@@ -2428,6 +2739,8 @@ export default function App() {
         viewMode={viewMode}
         onToggleViewMode={setViewMode}
         allProfiles={allProfiles}
+        allVotes={allVotes}
+        onUndoVote={handleRemoveVote}
       />
 
       {/* SECTION 2: 🏆 All Tournaments */}
@@ -2477,6 +2790,8 @@ export default function App() {
         viewMode={viewMode}
         onToggleViewMode={setViewMode}
         allProfiles={allProfiles}
+        allVotes={allVotes}
+        onUndoVote={handleRemoveVote}
       />
 
       {/* CREATIVE STATIC SPECIFICATION CARD BOARD (Arcade details) */}
@@ -2587,6 +2902,7 @@ export default function App() {
         blockedUsers={blockedUsers}
         onBlock={handleBlockUser}
         onUnblock={handleUnblockUser}
+        polls={polls}
       />
 
       {/* 9. Share / Transmit Stream Modal */}
@@ -2674,16 +2990,23 @@ export default function App() {
                       onClick={() => {
                         sounds.playSelect();
                         setIsNotificationOpen(false);
-                        // Scroll to the active poll post!
-                        const el = document.getElementById(`feed-post-${mention.sourceId}`);
-                        if (el) {
-                          el.scrollIntoView({ behavior: 'smooth', block: 'center' });
-                          // Briefly highlight or flash the card
-                          el.classList.add('ring-4', 'ring-shonen-orange');
-                          setTimeout(() => el.classList.remove('ring-4', 'ring-shonen-orange'), 2000);
+                        if (mention.isChat && mention.senderId) {
+                          // Trigger opening the tactical direct chat panel with the sender!
+                          window.dispatchEvent(new CustomEvent('open-combat-comms', { 
+                            detail: { friendId: mention.senderId } 
+                          }));
                         } else {
-                          // Try to search if not found
-                          window.scrollTo({ top: 0, behavior: 'smooth' });
+                          // Scroll to the active poll post!
+                          const el = document.getElementById(`feed-post-${mention.sourceId}`);
+                          if (el) {
+                            el.scrollIntoView({ behavior: 'smooth', block: 'center' });
+                            // Briefly highlight or flash the card
+                            el.classList.add('ring-4', 'ring-shonen-orange');
+                            setTimeout(() => el.classList.remove('ring-4', 'ring-shonen-orange'), 2000);
+                          } else {
+                            // Try to search if not found
+                            window.scrollTo({ top: 0, behavior: 'smooth' });
+                          }
                         }
                       }}
                       className="p-3 bg-white border-2 border-gray-200 hover:border-shonen-orange transition-all cursor-pointer group flex flex-col gap-1.5 relative hover:translate-x-1"

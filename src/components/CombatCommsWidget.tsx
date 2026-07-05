@@ -77,6 +77,19 @@ export default function CombatCommsWidget({
   const [loadingMsgs, setLoadingMsgs] = useState(false);
   const [unreadCount, setUnreadCount] = useState(0);
 
+  // Group chat states
+  const [groupChats, setGroupChats] = useState<any[]>(() => {
+    try {
+      return JSON.parse(localStorage.getItem('vote_arena_group_chats') || '[]');
+    } catch {
+      return [];
+    }
+  });
+  const [showCreateGc, setShowCreateGc] = useState(false);
+  const [gcName, setGcName] = useState('');
+  const [selectedGcMembers, setSelectedGcMembers] = useState<string[]>([]);
+  const [allInboxMessages, setAllInboxMessages] = useState<Message[]>([]);
+
   // Search Engine state variables
   const [searchTerm, setSearchTerm] = useState('');
   const [searchResults, setSearchResults] = useState<any[]>([]);
@@ -237,76 +250,145 @@ export default function CombatCommsWidget({
     }
   }, [currentUser?.id]);
 
-  // 3. Fetch conversation messages
-  const fetchMessages = async (friendId: string) => {
+  // 3. Unified Inbox polling engine
+  const fetchInbox = async () => {
     if (!currentUser) return;
-    const clearedTime = clearedChatTimestamps[friendId] || '1970-01-01T00:00:00.000Z';
-
-    let fallbackMsgs: Message[] = [];
     try {
-      // Load local storage messages first as base/fallback
       const localMsgs = JSON.parse(localStorage.getItem('vote_arena_messages') || '[]');
-      fallbackMsgs = localMsgs.filter(
-        (m: any) =>
-          ((m.sender_id === currentUser.id && m.receiver_id === friendId) ||
-          (m.sender_id === friendId && m.receiver_id === currentUser.id)) &&
-          !blockedUsers.includes(m.sender_id) &&
-          m.created_at > clearedTime
-      );
 
       const { data, error } = await supabase
         .from('messages')
         .select('*')
-        .or(`and(sender_id.eq.${currentUser.id},receiver_id.eq.${friendId}),and(sender_id.eq.${friendId},receiver_id.eq.${currentUser.id})`)
+        .or(`sender_id.eq.${currentUser.id},receiver_id.eq.${currentUser.id}`)
         .order('created_at', { ascending: true });
 
+      let combined = [...localMsgs];
       if (!error && data) {
-        const remoteFiltered = data.filter((m: any) => !blockedUsers.includes(m.sender_id) && m.created_at > clearedTime);
-        
-        // Merge local storage and remote messages to prevent any instant-deletion or sync lag issues
-        const merged = [...fallbackMsgs, ...remoteFiltered];
-        const unique = merged.filter((item, index, self) =>
-          self.findIndex(t => t.id === item.id) === index
-        );
-        
-        // Sort chronologically
-        unique.sort((a, b) => new Date(a.created_at).getTime() - new Date(b.created_at).getTime());
-        setMessages(unique);
-      } else {
-        setMessages(fallbackMsgs);
+        combined = [...combined, ...data];
       }
+
+      // Deduplicate by ID
+      const unique = combined.filter((item, index, self) =>
+        self.findIndex(t => t.id === item.id) === index
+      );
+
+      // Filter blocked users
+      const filtered = unique.filter(m => !blockedUsers.includes(m.sender_id));
+
+      // Sort chronologically
+      filtered.sort((a, b) => new Date(a.created_at).getTime() - new Date(b.created_at).getTime());
+
+      setAllInboxMessages(filtered);
+      localStorage.setItem('vote_arena_messages', JSON.stringify(filtered));
+
+      // Scan for newly added Group Chats automatically
+      const currentGcs = [...groupChats];
+      let gcsUpdated = false;
+
+      filtered.forEach((m: any) => {
+        if (m.text.startsWith('[SYSTEM_GC_CREATED]')) {
+          try {
+            const bodyStr = m.text.substring(19).trim();
+            const gcInfo = JSON.parse(bodyStr);
+            if (gcInfo.id && gcInfo.members && gcInfo.members.includes(currentUser.id)) {
+              const exists = currentGcs.some(g => g.id === gcInfo.id);
+              if (!exists) {
+                currentGcs.push(gcInfo);
+                gcsUpdated = true;
+              }
+            }
+          } catch (e) {}
+        }
+      });
+
+      if (gcsUpdated) {
+        setGroupChats(currentGcs);
+        localStorage.setItem('vote_arena_group_chats', JSON.stringify(currentGcs));
+      }
+
     } catch (e) {
-      setMessages(fallbackMsgs);
+      console.warn("Failed to fetch inbox messages", e);
     }
   };
 
-  // 4. Trigger message fetching and active polling for selected channel
+  // 4. Trigger active inbox polling
   useEffect(() => {
-    if (activeChannel && currentUser) {
-      setLoadingMsgs(true);
-      fetchMessages(activeChannel.id).then(() => setLoadingMsgs(false));
+    if (!currentUser) return;
+    
+    setLoadingMsgs(true);
+    fetchInbox().then(() => setLoadingMsgs(false));
 
+    if (pollIntervalRef.current) clearInterval(pollIntervalRef.current);
+
+    // Poll complete inbox every 3 seconds
+    pollIntervalRef.current = setInterval(() => {
+      fetchInbox();
+    }, 3000);
+
+    return () => {
       if (pollIntervalRef.current) clearInterval(pollIntervalRef.current);
+    };
+  }, [currentUser?.id]);
 
-      // Poll messages every 3 seconds
-      pollIntervalRef.current = setInterval(() => {
-        fetchMessages(activeChannel.id);
-      }, 3000);
-
-      // Mark channel as read instantly
-      const nowStr = new Date().toISOString();
-      const updatedLastRead = { ...lastReadTimes, [activeChannel.id]: nowStr };
-      setLastReadTimes(updatedLastRead);
-      localStorage.setItem('vote_arena_last_read_times', JSON.stringify(updatedLastRead));
-
-      return () => {
-        if (pollIntervalRef.current) clearInterval(pollIntervalRef.current);
-      };
-    } else {
+  // Derive message list for current active channel
+  useEffect(() => {
+    if (!currentUser || !activeChannel) {
       setMessages([]);
-      if (pollIntervalRef.current) clearInterval(pollIntervalRef.current);
+      return;
     }
-  }, [activeChannel, currentUser?.id]);
+
+    const channelId = activeChannel.id;
+    const clearedTime = clearedChatTimestamps[channelId] || '1970-01-01T00:00:00.000Z';
+
+    const isGc = channelId.startsWith('gc-');
+
+    if (isGc) {
+      // Group Chat message list
+      const gcMsgs = allInboxMessages.filter(m => {
+        if (m.text.startsWith('[GC_MSG]') && m.created_at > clearedTime) {
+          try {
+            const bodyStr = m.text.substring(8).trim();
+            const payload = JSON.parse(bodyStr);
+            return payload.gcId === channelId;
+          } catch (e) {
+            return false;
+          }
+        }
+        return false;
+      }).map(m => {
+        try {
+          const bodyStr = m.text.substring(8).trim();
+          const payload = JSON.parse(bodyStr);
+          return {
+            ...m,
+            text: payload.text,
+            sender_username: payload.senderUsername || m.sender_username || 'OPERATOR'
+          };
+        } catch {
+          return m;
+        }
+      });
+      setMessages(gcMsgs);
+    } else {
+      // Direct message list
+      const directMsgs = allInboxMessages.filter(m => {
+        const isDirect = ((m.sender_id === currentUser.id && m.receiver_id === channelId) ||
+                         (m.sender_id === channelId && m.receiver_id === currentUser.id)) &&
+                         !m.text.startsWith('[GC_MSG]') &&
+                         !m.text.startsWith('[SYSTEM_GC_CREATED]');
+        return isDirect && m.created_at > clearedTime;
+      });
+      setMessages(directMsgs);
+    }
+
+    // Mark as read instantly
+    const nowStr = new Date().toISOString();
+    const updatedLastRead = { ...lastReadTimes, [channelId]: nowStr };
+    setLastReadTimes(updatedLastRead);
+    localStorage.setItem('vote_arena_last_read_times', JSON.stringify(updatedLastRead));
+    window.dispatchEvent(new CustomEvent('recalc-unread-messages'));
+
+  }, [allInboxMessages, activeChannel, currentUser?.id]);
 
   // 5. Scroll messages to bottom on updates
   useEffect(() => {
@@ -322,14 +404,15 @@ export default function CombatCommsWidget({
       const localMsgs = JSON.parse(localStorage.getItem('vote_arena_messages') || '[]');
       const counts: Record<string, number> = {};
 
+      // Direct chats unread counts
       mutualFollows.forEach(friend => {
         const lastRead = lastReadTimes[friend.id] || '1970-01-01T00:00:00.000Z';
         const clearedTime = clearedChatTimestamps[friend.id] || '1970-01-01T00:00:00.000Z';
 
-        // Filter messages sent by friend to current user that were created after lastRead AND after clearedTime
         const unreadList = localMsgs.filter((m: any) => 
           m.sender_id === friend.id &&
           m.receiver_id === currentUser.id &&
+          !m.text.startsWith('[GC_MSG]') &&
           m.created_at > lastRead &&
           m.created_at > clearedTime
         );
@@ -337,24 +420,103 @@ export default function CombatCommsWidget({
         counts[friend.id] = unreadList.length;
       });
 
+      // Group Chats unread counts
+      groupChats.forEach(gc => {
+        const lastRead = lastReadTimes[gc.id] || '1970-01-01T00:00:00.000Z';
+        const clearedTime = clearedChatTimestamps[gc.id] || '1970-01-01T00:00:00.000Z';
+
+        const unreadList = localMsgs.filter((m: any) => {
+          if (m.sender_id === currentUser.id) return false;
+          if (m.text.startsWith('[GC_MSG]')) {
+            try {
+              const bodyStr = m.text.substring(8).trim();
+              const payload = JSON.parse(bodyStr);
+              return payload.gcId === gc.id && m.created_at > lastRead && m.created_at > clearedTime;
+            } catch (e) {
+              return false;
+            }
+          }
+          return false;
+        });
+
+        counts[gc.id] = unreadList.length;
+      });
+
       setUnreadCounts(counts);
 
       const totalUnreadMessages = Object.values(counts).reduce((acc, c) => acc + c, 0);
       setUnreadCount(totalUnreadMessages + sharedPolls.length);
+      localStorage.setItem('vote_arena_total_unread_chat_count', String(totalUnreadMessages));
+      window.dispatchEvent(new CustomEvent('recalc-unread-messages', { detail: { count: totalUnreadMessages } }));
     } catch (e) {
       console.warn("Failed to update unread counts", e);
     }
   };
 
-  // Recalculate unread counts
+  // Recalculate unread counts on changes
   useEffect(() => {
     calculateUnreadCounts();
-    // Run an extra check loop every 4 seconds in the background
     const unreadCheckInterval = setInterval(calculateUnreadCounts, 4000);
     return () => clearInterval(unreadCheckInterval);
-  }, [messages, lastReadTimes, clearedChatTimestamps, mutualFollows, sharedPolls]);
+  }, [allInboxMessages, lastReadTimes, clearedChatTimestamps, mutualFollows, groupChats, sharedPolls]);
 
-  // 7. Send message pipeline
+  // 7. Group Chat Submission Handler
+  const handleCreateGcSubmit = async (e: React.FormEvent) => {
+    e.preventDefault();
+    if (!gcName.trim() || selectedGcMembers.length === 0 || !currentUser) return;
+    sounds.playSelect();
+
+    const gcId = `gc-${Date.now()}`;
+    const newGc = {
+      id: gcId,
+      name: gcName.toUpperCase().trim(),
+      members: [currentUser.id, ...selectedGcMembers],
+      created_by: currentUser.id,
+      created_at: new Date().toISOString()
+    };
+
+    const updatedGcs = [...groupChats, newGc];
+    setGroupChats(updatedGcs);
+    localStorage.setItem('vote_arena_group_chats', JSON.stringify(updatedGcs));
+
+    try {
+      const promises = selectedGcMembers.map(async (memberId) => {
+        const systemMsg = {
+          id: `m-sys-${Date.now()}-${Math.random().toString(36).substr(2, 5)}`,
+          sender_id: currentUser.id,
+          receiver_id: memberId,
+          text: `[SYSTEM_GC_CREATED] ${JSON.stringify(newGc)}`,
+          created_at: new Date().toISOString()
+        };
+        return supabase.from('messages').insert([systemMsg]);
+      });
+
+      await Promise.all(promises);
+
+      // Add GC creation system message locally too
+      const localMsgs = JSON.parse(localStorage.getItem('vote_arena_messages') || '[]');
+      localMsgs.push({
+        id: `m-sys-${Date.now()}-self`,
+        sender_id: currentUser.id,
+        receiver_id: currentUser.id,
+        text: `[SYSTEM_GC_CREATED] ${JSON.stringify(newGc)}`,
+        created_at: new Date().toISOString()
+      });
+      localStorage.setItem('vote_arena_messages', JSON.stringify(localMsgs));
+
+      setGcName('');
+      setSelectedGcMembers([]);
+      setShowCreateGc(false);
+      setActiveChannel(newGc);
+      fetchInbox();
+
+      alert(`🔥 GC INITIALIZED: [${newGc.name}] ESTABLISHED WITH ${selectedGcMembers.length + 1} OPERATORS.`);
+    } catch (e) {
+      console.error(e);
+    }
+  };
+
+  // 8. Send Message Pipeline
   const handleSendMessage = async (e: React.FormEvent) => {
     e.preventDefault();
     if (!msgInput.trim() || !currentUser || !activeChannel) return;
@@ -363,109 +525,242 @@ export default function CombatCommsWidget({
     const tempInput = msgInput.trim();
     setMsgInput('');
 
-    const newMsg: Message = {
-      id: `m-${Date.now()}-${Math.random().toString(36).substr(2, 5)}`,
-      sender_id: currentUser.id,
-      receiver_id: activeChannel.id,
-      text: tempInput,
-      created_at: new Date().toISOString(),
-      sender_username: currentUser.username
-    };
+    const isGc = activeChannel.id.startsWith('gc-');
 
-    // Optimistic local state update
-    setMessages(prev => [...prev, newMsg]);
+    if (isGc) {
+      const gcId = activeChannel.id;
+      const gcMembers = activeChannel.members || [];
+      const gcPayload = JSON.stringify({
+        gcId,
+        text: tempInput,
+        senderUsername: currentUser.username
+      });
 
-    try {
-      // 1. Write message to Supabase
-      const { error } = await supabase.from('messages').insert([newMsg]);
+      const tempMsg: Message = {
+        id: `m-${Date.now()}-${Math.random().toString(36).substr(2, 5)}`,
+        sender_id: currentUser.id,
+        receiver_id: gcId,
+        text: `[GC_MSG] ${gcPayload}`,
+        created_at: new Date().toISOString(),
+        sender_username: currentUser.username
+      };
 
-      if (error && error.message?.includes('column')) {
-        // Strip out extra sender_username key if it doesn't exist on the DB schema
-        const { sender_username, ...dbPayload } = newMsg;
-        await supabase.from('messages').insert([dbPayload]);
+      setMessages(prev => [...prev, {
+        ...tempMsg,
+        text: tempInput,
+        sender_username: currentUser.username
+      }]);
+
+      try {
+        const promises = gcMembers
+          .filter((mId: string) => mId !== currentUser.id)
+          .map(async (mId: string) => {
+            const dbMsg = {
+              id: `m-${Date.now()}-${Math.random().toString(36).substr(2, 5)}`,
+              sender_id: currentUser.id,
+              receiver_id: mId,
+              text: `[GC_MSG] ${gcPayload}`,
+              created_at: new Date().toISOString()
+            };
+            return supabase.from('messages').insert([dbMsg]);
+          });
+
+        await Promise.all(promises);
+
+        const localMsgs = JSON.parse(localStorage.getItem('vote_arena_messages') || '[]');
+        localMsgs.push(tempMsg);
+        localStorage.setItem('vote_arena_messages', JSON.stringify(localMsgs));
+
+        fetchInbox();
+      } catch (e) {
+        const localMsgs = JSON.parse(localStorage.getItem('vote_arena_messages') || '[]');
+        localMsgs.push(tempMsg);
+        localStorage.setItem('vote_arena_messages', JSON.stringify(localMsgs));
       }
+    } else {
+      const friendId = activeChannel.id;
+      const newMsg: Message = {
+        id: `m-${Date.now()}-${Math.random().toString(36).substr(2, 5)}`,
+        sender_id: currentUser.id,
+        receiver_id: friendId,
+        text: tempInput,
+        created_at: new Date().toISOString(),
+        sender_username: currentUser.username
+      };
 
-      // 2. Also record in local storage as a robust fallback
-      const localMsgs = JSON.parse(localStorage.getItem('vote_arena_messages') || '[]');
-      localMsgs.push(newMsg);
-      localStorage.setItem('vote_arena_messages', JSON.stringify(localMsgs));
-    } catch (e) {
-      // Backup safe saving
-      const localMsgs = JSON.parse(localStorage.getItem('vote_arena_messages') || '[]');
-      localMsgs.push(newMsg);
-      localStorage.setItem('vote_arena_messages', JSON.stringify(localMsgs));
+      setMessages(prev => [...prev, newMsg]);
+
+      try {
+        const { error } = await supabase.from('messages').insert([newMsg]);
+        if (error && error.message?.includes('column')) {
+          const { sender_username, ...dbPayload } = newMsg;
+          await supabase.from('messages').insert([dbPayload]);
+        }
+
+        const localMsgs = JSON.parse(localStorage.getItem('vote_arena_messages') || '[]');
+        localMsgs.push(newMsg);
+        localStorage.setItem('vote_arena_messages', JSON.stringify(localMsgs));
+
+        fetchInbox();
+      } catch (e) {
+        const localMsgs = JSON.parse(localStorage.getItem('vote_arena_messages') || '[]');
+        localMsgs.push(newMsg);
+        localStorage.setItem('vote_arena_messages', JSON.stringify(localMsgs));
+      }
     }
   };
 
-  // 8. Send Gifs & Stickers pipeline
+  // 9. Send Gifs & Stickers pipeline
   const handleSendMedia = async (url: string, type: 'GIF' | 'STICKER') => {
     if (!currentUser || !activeChannel) return;
     sounds.playSelect();
 
     const mediaPayload = `[${type}] ${url}`;
-    const newMsg: Message = {
-      id: `m-${Date.now()}-${Math.random().toString(36).substr(2, 5)}`,
-      sender_id: currentUser.id,
-      receiver_id: activeChannel.id,
-      text: mediaPayload,
-      created_at: new Date().toISOString(),
-      sender_username: currentUser.username
-    };
+    const isGc = activeChannel.id.startsWith('gc-');
 
-    // Optimistic local state update
-    setMessages(prev => [...prev, newMsg]);
-    setShowMediaDrawer(false);
+    if (isGc) {
+      const gcId = activeChannel.id;
+      const gcMembers = activeChannel.members || [];
+      const gcPayload = JSON.stringify({
+        gcId,
+        text: mediaPayload,
+        senderUsername: currentUser.username
+      });
 
-    try {
-      // Write message to Supabase
-      const { error } = await supabase.from('messages').insert([newMsg]);
-      if (error && error.message?.includes('column')) {
-        const { sender_username, ...dbPayload } = newMsg;
-        await supabase.from('messages').insert([dbPayload]);
+      const tempMsg: Message = {
+        id: `m-${Date.now()}-${Math.random().toString(36).substr(2, 5)}`,
+        sender_id: currentUser.id,
+        receiver_id: gcId,
+        text: `[GC_MSG] ${gcPayload}`,
+        created_at: new Date().toISOString(),
+        sender_username: currentUser.username
+      };
+
+      setMessages(prev => [...prev, {
+        ...tempMsg,
+        text: mediaPayload,
+        sender_username: currentUser.username
+      }]);
+      setShowMediaDrawer(false);
+
+      try {
+        const promises = gcMembers
+          .filter((mId: string) => mId !== currentUser.id)
+          .map(async (mId: string) => {
+            const dbMsg = {
+              id: `m-${Date.now()}-${Math.random().toString(36).substr(2, 5)}`,
+              sender_id: currentUser.id,
+              receiver_id: mId,
+              text: `[GC_MSG] ${gcPayload}`,
+              created_at: new Date().toISOString()
+            };
+            return supabase.from('messages').insert([dbMsg]);
+          });
+
+        await Promise.all(promises);
+
+        const localMsgs = JSON.parse(localStorage.getItem('vote_arena_messages') || '[]');
+        localMsgs.push(tempMsg);
+        localStorage.setItem('vote_arena_messages', JSON.stringify(localMsgs));
+
+        fetchInbox();
+      } catch (e) {
+        const localMsgs = JSON.parse(localStorage.getItem('vote_arena_messages') || '[]');
+        localMsgs.push(tempMsg);
+        localStorage.setItem('vote_arena_messages', JSON.stringify(localMsgs));
       }
+    } else {
+      const friendId = activeChannel.id;
+      const newMsg: Message = {
+        id: `m-${Date.now()}-${Math.random().toString(36).substr(2, 5)}`,
+        sender_id: currentUser.id,
+        receiver_id: friendId,
+        text: mediaPayload,
+        created_at: new Date().toISOString(),
+        sender_username: currentUser.username
+      };
 
-      // Record in local storage as a robust fallback
-      const localMsgs = JSON.parse(localStorage.getItem('vote_arena_messages') || '[]');
-      localMsgs.push(newMsg);
-      localStorage.setItem('vote_arena_messages', JSON.stringify(localMsgs));
-    } catch (e) {
-      const localMsgs = JSON.parse(localStorage.getItem('vote_arena_messages') || '[]');
-      localMsgs.push(newMsg);
-      localStorage.setItem('vote_arena_messages', JSON.stringify(localMsgs));
+      setMessages(prev => [...prev, newMsg]);
+      setShowMediaDrawer(false);
+
+      try {
+        const { error } = await supabase.from('messages').insert([newMsg]);
+        if (error && error.message?.includes('column')) {
+          const { sender_username, ...dbPayload } = newMsg;
+          await supabase.from('messages').insert([dbPayload]);
+        }
+
+        const localMsgs = JSON.parse(localStorage.getItem('vote_arena_messages') || '[]');
+        localMsgs.push(newMsg);
+        localStorage.setItem('vote_arena_messages', JSON.stringify(localMsgs));
+
+        fetchInbox();
+      } catch (e) {
+        const localMsgs = JSON.parse(localStorage.getItem('vote_arena_messages') || '[]');
+        localMsgs.push(newMsg);
+        localStorage.setItem('vote_arena_messages', JSON.stringify(localMsgs));
+      }
     }
   };
 
-  // 9. Wipe/Erase Chat logs with contact
-  const handleDeleteChat = async (friendId: string, friendUsername: string) => {
+  // 9. Wipe/Erase Chat logs with contact or Leave Squad
+  const handleDeleteChat = async (id: string, nameOrUsername: string) => {
     if (!currentUser) return;
     sounds.playTick();
-    const confirmed = window.confirm(
-      `⚠️ COMBAT LOGS ERASE REQUISITION:\n\nARE YOU SURE YOU WANT TO COMPLETELY DESTROY ALL CORRESPONDENCE AND SIGNALS TRANSFERRED WITH OP [${friendUsername.toUpperCase()}]?\n\nTHIS ACTION CANNOT BE UNDONE.`
-    );
-    if (!confirmed) return;
 
-    sounds.playImpact();
-    const nowStr = new Date().toISOString();
+    const isGc = id.startsWith('gc-');
 
-    // Store clear action timestamp locally
-    const updatedCleared = { ...clearedChatTimestamps, [friendId]: nowStr };
-    setClearedChatTimestamps(updatedCleared);
-    localStorage.setItem('vote_arena_cleared_chat_timestamps', JSON.stringify(updatedCleared));
-
-    // Remove active conversation messages from local backup file
-    try {
-      const localMsgs = JSON.parse(localStorage.getItem('vote_arena_messages') || '[]');
-      const filtered = localMsgs.filter((m: any) => 
-        !((m.sender_id === currentUser.id && m.receiver_id === friendId) || 
-          (m.sender_id === friendId && m.receiver_id === currentUser.id))
+    if (isGc) {
+      const confirmed = window.confirm(
+        `⚠️ SQUAD SEPARATION REQUISITION:\n\nARE YOU SURE YOU WANT TO DE-COMMISSION OR LEAVE SQUAD [${nameOrUsername.toUpperCase()}]?\n\nYOU WILL NO LONGER RECEIVE UPDATES FROM THIS CHANNEL.`
       );
-      localStorage.setItem('vote_arena_messages', JSON.stringify(filtered));
-    } catch (e) {
-      console.warn(e);
-    }
+      if (!confirmed) return;
 
-    setMessages([]);
-    alert(`💥 DATA FLUSHED: Secure channel log history with OP [${friendUsername.toUpperCase()}] has been eradicated.`);
+      sounds.playImpact();
+      
+      // Filter out this group chat locally
+      const updatedGcs = groupChats.filter(g => g.id !== id);
+      setGroupChats(updatedGcs);
+      localStorage.setItem('vote_arena_group_chats', JSON.stringify(updatedGcs));
+
+      // Mark cleared
+      const nowStr = new Date().toISOString();
+      const updatedCleared = { ...clearedChatTimestamps, [id]: nowStr };
+      setClearedChatTimestamps(updatedCleared);
+      localStorage.setItem('vote_arena_cleared_chat_timestamps', JSON.stringify(updatedCleared));
+
+      setActiveChannel(null);
+      setMessages([]);
+      alert(`💥 SQUAD VACATED: You have departed [${nameOrUsername.toUpperCase()}] successfully.`);
+    } else {
+      const confirmed = window.confirm(
+        `⚠️ COMBAT LOGS ERASE REQUISITION:\n\nARE YOU SURE YOU WANT TO COMPLETELY DESTROY ALL CORRESPONDENCE AND SIGNALS TRANSFERRED WITH OP [${nameOrUsername.toUpperCase()}]?\n\nTHIS ACTION CANNOT BE UNDONE.`
+      );
+      if (!confirmed) return;
+
+      sounds.playImpact();
+      const nowStr = new Date().toISOString();
+
+      // Store clear action timestamp locally
+      const updatedCleared = { ...clearedChatTimestamps, [id]: nowStr };
+      setClearedChatTimestamps(updatedCleared);
+      localStorage.setItem('vote_arena_cleared_chat_timestamps', JSON.stringify(updatedCleared));
+
+      // Remove active conversation messages from local backup file
+      try {
+        const localMsgs = JSON.parse(localStorage.getItem('vote_arena_messages') || '[]');
+        const filtered = localMsgs.filter((m: any) => 
+          !((m.sender_id === currentUser.id && m.receiver_id === id) || 
+            (m.sender_id === id && m.receiver_id === currentUser.id))
+        );
+        localStorage.setItem('vote_arena_messages', JSON.stringify(filtered));
+      } catch (e) {
+        console.warn(e);
+      }
+
+      setMessages([]);
+      alert(`💥 DATA FLUSHED: Secure channel log history with OP [${nameOrUsername.toUpperCase()}] has been eradicated.`);
+    }
   };
 
   // 10. Scroll & Flash shared poll target
@@ -548,7 +843,11 @@ export default function CombatCommsWidget({
                     VOTE_ARENA // INSTAGRAM_MESSAGE_COLUMN
                   </span>
                   <span className="font-mono text-xs font-black text-gray-950 uppercase tracking-wider block">
-                    {activeChannel ? `SECURED STREAM WITH @${activeChannel.username.toUpperCase()}` : 'CODENAME INBOX DIRECTORY'}
+                    {activeChannel 
+                      ? activeChannel.id.startsWith('gc-')
+                        ? `SECURED SQUAD FEED: [${activeChannel.name.toUpperCase()}]`
+                        : `SECURED STREAM WITH @${activeChannel.username.toUpperCase()}`
+                      : 'CODENAME INBOX DIRECTORY'}
                   </span>
                 </div>
               </div>
@@ -557,12 +856,12 @@ export default function CombatCommsWidget({
                 {/* Clear chat logs context button */}
                 {activeChannel && (
                   <button
-                    onClick={() => handleDeleteChat(activeChannel.id, activeChannel.username)}
+                    onClick={() => handleDeleteChat(activeChannel.id, activeChannel.id.startsWith('gc-') ? activeChannel.name : activeChannel.username)}
                     className="flex items-center gap-1 font-mono text-[8px] text-red-600 border border-red-200 hover:border-red-600 px-2 py-1 bg-red-50 hover:bg-red-600 hover:text-white uppercase font-black transition-all cursor-pointer rounded-xs"
-                    title="ERASE LOG HISTORY"
+                    title={activeChannel.id.startsWith('gc-') ? "LEAVE SQUAD" : "ERASE LOG HISTORY"}
                   >
                     <Trash2 className="w-3 h-3" />
-                    <span className="hidden sm:inline">ERASE FEED</span>
+                    <span className="hidden sm:inline">{activeChannel.id.startsWith('gc-') ? "LEAVE SQUAD" : "ERASE FEED"}</span>
                   </button>
                 )}
 
@@ -710,12 +1009,146 @@ export default function CombatCommsWidget({
 
                   <div className="h-px bg-gray-200" />
 
+                  {/* GROUP CHAT CREATOR / LIST */}
+                  <div className="space-y-2">
+                    <div className="flex items-center justify-between">
+                      <div className="flex items-center gap-1.5">
+                        <Users className="w-3.5 h-3.5 text-shonen-orange shrink-0" />
+                        <span className="font-mono text-[9px] text-shonen-orange font-extrabold uppercase tracking-widest">
+                          TACTICAL SQUADS ({groupChats.length})
+                        </span>
+                      </div>
+                      <button
+                        onClick={() => {
+                          sounds.playSelect();
+                          setShowCreateGc(!showCreateGc);
+                        }}
+                        className="font-mono text-[8px] bg-black text-white hover:bg-shonen-orange font-black px-1.5 py-0.5 uppercase border border-black"
+                      >
+                        {showCreateGc ? 'CANCEL' : 'CREATE SQUAD'}
+                      </button>
+                    </div>
+
+                    {showCreateGc && (
+                      <form onSubmit={handleCreateGcSubmit} className="p-2 border-2 border-dashed border-shonen-orange bg-shonen-orange/5 space-y-2">
+                        <div className="space-y-1">
+                          <label className="block font-mono text-[8px] font-black text-gray-700 uppercase">SQUAD CALLSIGN:</label>
+                          <input
+                            type="text"
+                            maxLength={20}
+                            placeholder="E.G. TEAM 7"
+                            value={gcName}
+                            onChange={(e) => setGcName(e.target.value)}
+                            className="w-full font-mono text-xs p-1.5 border border-black bg-white rounded-none focus:outline-none focus:ring-1 focus:ring-shonen-orange text-gray-900"
+                            required
+                          />
+                        </div>
+
+                        <div className="space-y-1">
+                          <label className="block font-mono text-[8px] font-black text-gray-700 uppercase">RECRUIT OPERATORS:</label>
+                          {mutualFollows.length === 0 ? (
+                            <p className="font-mono text-[8px] text-gray-400 uppercase italic">No mutual follows available to recruit.</p>
+                          ) : (
+                            <div className="max-h-24 overflow-y-auto space-y-1 pr-1">
+                              {mutualFollows.map((friend) => {
+                                const isSelected = selectedGcMembers.includes(friend.id);
+                                return (
+                                  <div
+                                    key={friend.id}
+                                    onClick={() => {
+                                      sounds.playTick();
+                                      if (isSelected) {
+                                        setSelectedGcMembers(prev => prev.filter(id => id !== friend.id));
+                                      } else {
+                                        setSelectedGcMembers(prev => [...prev, friend.id]);
+                                      }
+                                    }}
+                                    className={`p-1 border text-left cursor-pointer transition-all flex items-center justify-between ${
+                                      isSelected 
+                                        ? 'bg-black text-white border-black' 
+                                        : 'bg-white text-gray-800 border-gray-200 hover:border-black'
+                                    }`}
+                                  >
+                                    <span className="font-mono text-[10px] uppercase font-bold">{friend.username}</span>
+                                    <span className="font-mono text-[8px]">{isSelected ? '✓ RECRUITED' : '+ ADD'}</span>
+                                  </div>
+                                );
+                              })}
+                            </div>
+                          )}
+                        </div>
+
+                        <button
+                          type="submit"
+                          disabled={!gcName.trim() || selectedGcMembers.length === 0}
+                          className="w-full font-mono text-[10px] bg-shonen-orange text-white hover:bg-black font-black p-1.5 uppercase transition-colors disabled:opacity-50 disabled:hover:bg-shonen-orange"
+                        >
+                          INITIALIZE SQUAD CHAT
+                        </button>
+                      </form>
+                    )}
+
+                    {groupChats.length > 0 && (
+                      <div className="space-y-1">
+                        {groupChats.map((gc) => {
+                          const isGcSelected = activeChannel?.id === gc.id;
+                          const unreadCount = unreadCounts[gc.id] || 0;
+
+                          return (
+                            <div
+                              key={gc.id}
+                              onClick={() => {
+                                sounds.playSelect();
+                                setActiveChannel(gc);
+                              }}
+                              className={`p-2 border transition-all cursor-pointer flex justify-between items-center rounded-none relative overflow-hidden ${
+                                isGcSelected
+                                  ? 'bg-shonen-orange/10 border-shonen-orange/75 shadow-xs'
+                                  : 'bg-white border-gray-200 hover:border-shonen-orange'
+                              }`}
+                            >
+                              {isGcSelected && (
+                                <div className="absolute left-0 top-0 bottom-0 w-1 bg-shonen-orange" />
+                              )}
+
+                              <div className="flex items-center gap-2 min-w-0">
+                                <div className="w-7 h-7 rounded-full border border-black shrink-0 flex items-center justify-center overflow-hidden bg-black text-white font-mono text-[10px] font-black">
+                                  {gc.name.slice(0, 2).toUpperCase()}
+                                </div>
+                                <div className="min-w-0">
+                                  <span className="font-mono text-xs font-black text-gray-900 uppercase block leading-none mb-1">
+                                    {gc.name}
+                                  </span>
+                                  <span className="font-mono text-[8px] text-gray-400 uppercase block leading-none truncate">
+                                    {gc.members?.length || 0} OPERATORS
+                                  </span>
+                                </div>
+                              </div>
+
+                              {unreadCount > 0 ? (
+                                <span className="font-mono text-[9px] bg-red-600 text-white font-black px-1.5 py-0.5 animate-pulse border border-white flex items-center gap-1 shrink-0">
+                                  🗡️ KATANA
+                                </span>
+                              ) : (
+                                <span className="font-mono text-[8px] text-gray-400 border border-gray-100 px-1 py-0.5 bg-gray-50 uppercase shrink-0">
+                                  SQUAD
+                                </span>
+                              )}
+                            </div>
+                          );
+                        })}
+                      </div>
+                    )}
+                  </div>
+
+                  <div className="h-px bg-gray-200" />
+
                   {/* ACTIVE CHATS DIRECTORY */}
                   <div className="space-y-1.5">
                     <div className="flex items-center gap-1.5">
                       <Users className="w-3.5 h-3.5 text-shonen-orange shrink-0" />
                       <span className="font-mono text-[9px] text-shonen-orange font-extrabold uppercase tracking-widest">
-                        ESTABLISHED TUNNELS ({mutualFollows.length})
+                        DIRECT COMMUNICATIONS ({mutualFollows.length})
                       </span>
                     </div>
 
@@ -758,7 +1191,7 @@ export default function CombatCommsWidget({
                                     const friendProfile = allProfiles?.find(p => p.id === friend.id);
                                     const friendAvatarUrl = friendProfile?.avatar_url;
                                     if (friendAvatarUrl) {
-                                      return <img src={friendAvatarUrl} alt={friend.username} className="w-full h-full object-cover" />;
+                                      return <img src={friendAvatarUrl} alt={friend.username} className="w-full h-full object-cover" referrerPolicy="no-referrer" />;
                                     }
                                     return (
                                       <div className="w-full h-full bg-gray-200 text-gray-700 text-[10px] font-mono font-black flex items-center justify-center">
@@ -779,8 +1212,8 @@ export default function CombatCommsWidget({
 
                               {/* Unread Message count indicator badge */}
                               {unreadCount > 0 ? (
-                                <span className="font-mono text-[8px] bg-red-600 text-white font-black px-1.5 py-0.5 rounded-full shrink-0 animate-pulse border border-white">
-                                  {unreadCount} NEW
+                                <span className="font-mono text-[9px] bg-red-600 text-white font-black px-1.5 py-0.5 animate-pulse border border-white flex items-center gap-1 shrink-0">
+                                  🗡️ KATANA
                                 </span>
                               ) : (
                                 <span className="font-mono text-[8px] text-gray-400 border border-gray-100 px-1 py-0.5 bg-gray-50 uppercase shrink-0">

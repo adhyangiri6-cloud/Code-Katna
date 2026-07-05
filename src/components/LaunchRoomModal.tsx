@@ -212,7 +212,7 @@ export default function LaunchRoomModal({ isOpen, onClose, onAddPoll, currentUse
   return (
     <AnimatePresence>
       {isOpen && (
-        <div className="fixed inset-0 z-50 flex items-center justify-center p-4">
+        <div className="fixed inset-0 z-50 overflow-y-auto flex items-start md:items-center justify-center p-4">
           {/* Backdrop */}
           <motion.div
             initial={{ opacity: 0 }}
@@ -222,11 +222,11 @@ export default function LaunchRoomModal({ isOpen, onClose, onAddPoll, currentUse
               sounds.playTick();
               onClose();
             }}
-            className="absolute inset-0 bg-black/60 backdrop-blur-sm"
+            className="absolute inset-0 bg-black/60 backdrop-blur-sm fixed"
           />
 
           {/* CRT scanlines inside modal */}
-          <div className="absolute inset-0 scanlines opacity-[0.03] pointer-events-none z-50" />
+          <div className="absolute inset-0 scanlines opacity-[0.03] pointer-events-none z-50 fixed" />
 
           {/* Modal Container */}
           <motion.div
@@ -234,7 +234,7 @@ export default function LaunchRoomModal({ isOpen, onClose, onAddPoll, currentUse
             animate={{ scale: 1, y: 0, opacity: 1 }}
             exit={{ scale: 0.9, y: 50, opacity: 0 }}
             transition={{ type: 'spring', duration: 0.5, bounce: 0.2 }}
-            className="relative w-full max-w-lg max-h-[90vh] overflow-y-auto bg-white border-4 border-black p-6 md:p-8 clip-cyber-card z-50 shadow-lg text-gray-950 scrollbar-thin"
+            className="relative w-full max-w-lg my-auto bg-white border-4 border-black p-6 md:p-8 clip-cyber-card z-50 shadow-lg text-gray-950 scrollbar-thin max-h-none md:max-h-[90vh] md:overflow-y-auto"
           >
             {/* Caution Hatching Border at the top */}
             <div className="absolute top-0 left-0 right-0 h-2 bg-[linear-gradient(45deg,#FF6B00_25%,#fff_25%,#fff_50%,#FF6B00_50%,#FF6B00_75%,#fff_75%,#fff)] bg-[size:16px_16px]" />
