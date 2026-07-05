@@ -1,0 +1,6 @@
+{
+  "name": "Velgre",
+  "description": "A high-energy, Instagram-shonen styled homepage shell for an international polling and tournament web app, featuring live interactive brackets, classroom polling, custom stories, and high-fidelity shonen sound and visual feedback.",
+  "requestFramePermissions": [],
+  "majorCapabilities": ["MAJOR_CAPABILITY_SERVER_SIDE_GEMINI_API"]
+}

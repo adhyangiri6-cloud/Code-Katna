@@ -1,0 +1,198 @@
+@import url('https://fonts.googleapis.com/css2?family=Space+Grotesk:wght@400;700;900&family=JetBrains+Mono:wght@400;700;800&family=Outfit:wght@400;600;900&display=swap');
+@import "tailwindcss";
+
+@theme {
+  --font-sans: "Space Grotesk", "Outfit", ui-sans-serif, system-ui, sans-serif;
+  --font-mono: "JetBrains Mono", ui-monospace, SFMono-Regular, monospace;
+  
+  --color-cyber-black: #050505;
+  --color-cyber-dark: #0d0d0d;
+  --color-neon-yellow: #FDEE00;
+  --color-cyber-pink: #FF007F;
+  --color-neon-cyan: #00F0FF;
+  
+  --color-shonen-orange: #FF6B00;
+  --color-shonen-yellow: #FFD700;
+  --color-shonen-red: #E11D48;
+  --color-shonen-blue: #00A2FF;
+  --color-shonen-purple: #8B5CF6;
+  --color-shonen-ink: #0A0A0C;
+  --color-shonen-paper: #FFFDF9;
+}
+
+@layer utilities {
+  .clip-diagonal {
+    clip-path: polygon(0 0, 100% 0, 95% 100%, 0% 100%);
+  }
+  
+  .clip-diagonal-reverse {
+    clip-path: polygon(5% 0, 100% 0, 100% 100%, 0% 100%);
+  }
+
+  .clip-chevron {
+    clip-path: polygon(0 0, 92% 0, 100% 50%, 92% 100%, 0 100%);
+  }
+
+  .clip-parallelogram {
+    clip-path: polygon(10% 0, 100% 0, 90% 100%, 0% 100%);
+  }
+  
+  .clip-cyber-card {
+    clip-path: polygon(
+      0% 0%, 
+      calc(100% - 15px) 0%, 
+      100% 15px, 
+      100% 100%, 
+      15px 100%, 
+      0% calc(100% - 15px)
+    );
+  }
+
+  .clip-cyber-card-sm {
+    clip-path: polygon(
+      0% 0%, 
+      calc(100% - 8px) 0%, 
+      100% 8px, 
+      100% 100%, 
+      8px 100%, 
+      0% calc(100% - 8px)
+    );
+  }
+
+  .scanlines {
+    background: linear-gradient(
+      rgba(18, 16, 16, 0) 50%, 
+      rgba(0, 0, 0, 0.25) 50%
+    );
+    background-size: 100% 4px;
+    z-index: 20;
+    pointer-events: none;
+  }
+
+  .cyber-grid {
+    background-size: 40px 40px;
+    background-image: 
+      linear-gradient(to right, rgba(255, 107, 0, 0.08) 1px, transparent 1px),
+      linear-gradient(to bottom, rgba(255, 107, 0, 0.08) 1px, transparent 1px);
+  }
+
+  /* Manga Halftone Screentone Effect */
+  .manga-screentone {
+    background-image: radial-gradient(rgba(255, 107, 0, 0.08) 15%, transparent 16%);
+    background-size: 8px 8px;
+    background-repeat: repeat;
+  }
+
+  /* Shonen Speedlines effect */
+  .manga-speedlines {
+    background-image: radial-gradient(circle, transparent 30%, rgba(255, 253, 249, 0.75) 95%),
+                      repeating-conic-gradient(from 0deg, transparent 0deg 1.5deg, rgba(255, 107, 0, 0.04) 1.5deg 3deg);
+  }
+
+  /* Instagram style story gradient ring */
+  .insta-story-ring {
+    background: linear-gradient(220deg, #FF6B00 0%, #FFD700 40%, #FF007F 70%, #8B5CF6 100%);
+  }
+
+  /* Manga heavy-border card shadows */
+  .manga-panel {
+    border: 3px solid #000000;
+    box-shadow: 5px 5px 0px 0px #000000;
+  }
+
+  .manga-panel-sm {
+    border: 2px solid #000000;
+    box-shadow: 3px 3px 0px 0px #000000;
+  }
+
+  .vertical-text {
+    writing-mode: vertical-rl;
+    transform: rotate(180deg);
+  }
+
+  .glow-pink {
+    box-shadow: 0 0 15px rgba(255, 0, 127, 0.4);
+  }
+
+  .glow-yellow {
+    box-shadow: 0 0 15px rgba(253, 238, 0, 0.4);
+  }
+
+  .glow-cyan {
+    box-shadow: 0 0 15px rgba(0, 240, 255, 0.4);
+  }
+}
+
+/* Custom animated marquee for extreme cyberpunk aesthetic */
+@keyframes marquee {
+  0% { transform: translateX(0%); }
+  100% { transform: translateX(-50%); }
+}
+
+.animate-marquee {
+  animation: marquee 20s linear infinite;
+}
+
+@keyframes glitch {
+  0% {
+    clip-path: inset(40% 0 61% 0);
+  }
+  20% {
+    clip-path: inset(92% 0 1% 0);
+  }
+  40% {
+    clip-path: inset(25% 0 58% 0);
+  }
+  60% {
+    clip-path: inset(80% 0 5% 0);
+  }
+  80% {
+    clip-path: inset(11% 0 75% 0);
+  }
+  100% {
+    clip-path: inset(50% 0 30% 0);
+  }
+}
+
+.glitch-text::after {
+  content: attr(data-text);
+  position: absolute;
+  left: 2px;
+  text-shadow: -1px 0 #FF007F;
+  top: 0;
+  color: #FDEE00;
+  background: #050505;
+  overflow: hidden;
+  clip: rect(0, 900px, 0, 0);
+  animation: glitch 1s infinite linear alternate-reverse;
+}
+
+.glitch-text::before {
+  content: attr(data-text);
+  position: absolute;
+  left: -2px;
+  text-shadow: -2px 0 #00F0FF;
+  top: 0;
+  color: #FF007F;
+  background: #050505;
+  overflow: hidden;
+  clip: rect(0, 900px, 0, 0);
+  animation: glitch 1.5s infinite linear alternate-reverse;
+}
+
+@keyframes flash-neon {
+  0%, 100% {
+    border-color: #00F0FF;
+    box-shadow: 0 0 25px rgba(0, 240, 255, 0.6);
+  }
+  50% {
+    border-color: #FF007F;
+    box-shadow: 0 0 35px rgba(255, 0, 127, 0.9);
+  }
+}
+
+.flash-neon-glow {
+  animation: flash-neon 0.8s infinite alternate !important;
+  z-index: 30;
+}
+
