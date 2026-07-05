@@ -165,6 +165,7 @@ interface LivePollingGridProps {
   onActivateSpotlight?: (pollId: string) => void;
   viewMode?: 'FEED' | 'GRID';
   onToggleViewMode?: (mode: 'FEED' | 'GRID') => void;
+  allProfiles?: any[];
 }
 
 export default function LivePollingGrid({ 
@@ -186,7 +187,8 @@ export default function LivePollingGrid({
   onDeletePoll,
   onActivateSpotlight,
   viewMode = 'FEED',
-  onToggleViewMode
+  onToggleViewMode,
+  allProfiles = []
 }: LivePollingGridProps) {
   
   // Track open comment sections per poll ID
@@ -768,8 +770,25 @@ export default function LivePollingGrid({
                                 return (
                                   <div key={`com-${comment.id}`} className="p-2.5 bg-white border border-gray-100 flex items-start gap-2.5">
                                     {/* Small circle avatar with simple dynamic colors */}
-                                    <div className="w-7 h-7 text-[9px] font-mono font-black rounded-full shrink-0 flex items-center justify-center text-gray-700 border border-gray-200 bg-gray-50">
-                                      {commAnime.avatarSymbol}
+                                    <div className="w-7 h-7 rounded-full shrink-0 flex items-center justify-center border border-gray-200 bg-gray-50 overflow-hidden">
+                                      {(() => {
+                                        const commenterProfile = allProfiles?.find(p => p.username?.toUpperCase() === commentUserClean);
+                                        const commenterAvatarUrl = commenterProfile?.avatar_url;
+                                        if (commenterAvatarUrl) {
+                                          return (
+                                            <img 
+                                              src={commenterAvatarUrl} 
+                                              alt={commentUserClean} 
+                                              referrerPolicy="no-referrer"
+                                              className="w-full h-full object-cover"
+                                              onError={(e) => {
+                                                (e.target as HTMLImageElement).style.display = 'none';
+                                              }}
+                                            />
+                                          );
+                                        }
+                                        return <span className="text-[9px] font-mono font-black text-gray-700">{commAnime.avatarSymbol}</span>;
+                                      })()}
                                     </div>
 
                                     {/* Text Content */}

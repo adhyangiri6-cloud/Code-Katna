@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useRef } from 'react';
 import { motion, AnimatePresence } from 'motion/react';
 import { User, HistoryItem, UserPreferences } from '../types';
 import { sounds } from './SoundManager';
@@ -17,8 +17,18 @@ import {
   Radio,
   Clock,
   Fingerprint,
-  Crown
+  Crown,
+  Camera
 } from 'lucide-react';
+
+const PRESET_AVATARS = [
+  { name: 'KAGE', url: 'https://api.dicebear.com/7.x/bottts/svg?seed=kage&backgroundColor=ff6b00' },
+  { name: 'CHICA', url: 'https://api.dicebear.com/7.x/bottts/svg?seed=chica&backgroundColor=00f0ff' },
+  { name: 'SENSEI', url: 'https://api.dicebear.com/7.x/bottts/svg?seed=sensei&backgroundColor=ff0055' },
+  { name: 'CYBORG', url: 'https://api.dicebear.com/7.x/bottts/svg?seed=cyborg&backgroundColor=ffcc00' },
+  { name: 'MATRIX', url: 'https://api.dicebear.com/7.x/bottts/svg?seed=matrix&backgroundColor=00ff66' },
+  { name: 'ARENA', url: 'https://api.dicebear.com/7.x/bottts/svg?seed=arena&backgroundColor=9900ff' }
+];
 
 interface CyberAuthProfileProps {
   isOpen: boolean;
@@ -28,6 +38,7 @@ interface CyberAuthProfileProps {
   onLogout: () => void;
   onUpdatePreferences: (prefs: UserPreferences) => void;
   onUpgradePremium?: () => void;
+  onUpdateAvatarUrl?: (url: string) => void;
 }
 
 export default function CyberAuthProfile({
@@ -37,7 +48,8 @@ export default function CyberAuthProfile({
   onLogin,
   onLogout,
   onUpdatePreferences,
-  onUpgradePremium
+  onUpgradePremium,
+  onUpdateAvatarUrl
 }: CyberAuthProfileProps) {
   const [tab, setTab] = useState<'login' | 'profile'>('login');
   
@@ -55,6 +67,10 @@ export default function CyberAuthProfile({
   const [prefAvatar, setPrefAvatar] = useState('OPS');
   const [prefSounds, setPrefSounds] = useState(true);
   const [prefBias, setPrefBias] = useState<'standard' | 'high-frequency' | 'sub-harmonic'>('standard');
+  const [avatarUrl, setAvatarUrl] = useState('');
+  const [showPresetSelector, setShowPresetSelector] = useState(false);
+
+  const fileInputRef = useRef<HTMLInputElement>(null);
 
   // Premium checkout screen states
   const [showPremiumCheckout, setShowPremiumCheckout] = useState(false);
@@ -69,6 +85,7 @@ export default function CyberAuthProfile({
       setPrefAvatar(currentUser.preferences.avatarTag);
       setPrefSounds(currentUser.preferences.enableAlertSounds);
       setPrefBias(currentUser.preferences.frequencyBias);
+      setAvatarUrl(currentUser.avatar_url || '');
     } else {
       if (tab === 'profile') {
         setTab('login');
@@ -330,6 +347,28 @@ export default function CyberAuthProfile({
     }
   };
 
+  const handleFileChange = (e: React.ChangeEvent<HTMLInputElement>) => {
+    const file = e.target.files?.[0];
+    if (!file) return;
+
+    if (file.size > 2 * 1024 * 1024) {
+      sounds.playError();
+      setError('AVATAR FILE SIZE EXCEEDS 2MB MAXIMUM.');
+      return;
+    }
+
+    const reader = new FileReader();
+    reader.onloadend = () => {
+      const dataUrl = reader.result as string;
+      setAvatarUrl(dataUrl);
+      if (onUpdateAvatarUrl) {
+        onUpdateAvatarUrl(dataUrl);
+      }
+      sounds.playTick();
+    };
+    reader.readAsDataURL(file);
+  };
+
   // Save modified Preferences
   const handleSavePreferences = () => {
     sounds.playImpact();
@@ -347,6 +386,9 @@ export default function CyberAuthProfile({
     };
 
     onUpdatePreferences(updatedPrefs);
+    if (onUpdateAvatarUrl) {
+      onUpdateAvatarUrl(avatarUrl);
+    }
     setSuccess('PREFERENCES SYNCHRONIZED INTO GRID CORRUPTURE.');
     
     setTimeout(() => {
@@ -727,6 +769,111 @@ export default function CyberAuthProfile({
                           maxLength={4}
                           className="w-full bg-white border border-gray-300 hover:border-gray-400 focus:border-shonen-orange px-3 py-1.5 font-mono text-xs text-gray-950 focus:outline-none"
                         />
+                      </div>
+
+                      {/* Profile Picture Option */}
+                      <div className="p-3 bg-gray-50 border border-gray-200 flex flex-col gap-2.5">
+                        <span className="block text-[10px] font-mono text-gray-500 uppercase font-black tracking-widest text-left">
+                          OPERATOR AVATAR / PROFILE PICTURE
+                        </span>
+                        
+                        <div className="flex items-center gap-3">
+                          <div 
+                            onClick={() => {
+                              sounds.playTick();
+                              fileInputRef.current?.click();
+                            }}
+                            className="relative w-12 h-12 bg-white border-2 border-black cursor-pointer group shrink-0 flex items-center justify-center overflow-hidden hover:border-shonen-orange transition-all shadow-sm"
+                            title="Click to choose a file"
+                          >
+                            {avatarUrl ? (
+                              <img 
+                                src={avatarUrl} 
+                                alt="Avatar preview" 
+                                className="w-full h-full object-cover"
+                                onError={(e) => {
+                                  (e.target as HTMLImageElement).src = `https://api.dicebear.com/7.x/bottts/svg?seed=${currentUser?.username || 'OPERATOR'}`;
+                                }}
+                              />
+                            ) : (
+                              <div className="flex flex-col items-center justify-center text-gray-400 group-hover:text-shonen-orange transition-colors">
+                                <Camera className="w-4 h-4 mb-0.5" />
+                                <span className="text-[6px] font-mono font-black uppercase">ADD PIC</span>
+                              </div>
+                            )}
+                            <div className="absolute inset-0 bg-black/40 opacity-0 group-hover:opacity-100 flex items-center justify-center transition-opacity">
+                              <span className="text-[8px] font-mono font-bold text-white uppercase text-center leading-none">UPLOAD</span>
+                            </div>
+                          </div>
+
+                          <div className="flex-1 space-y-1.5">
+                            <div className="flex gap-1.5">
+                              <button
+                                type="button"
+                                onClick={() => {
+                                  sounds.playTick();
+                                  fileInputRef.current?.click();
+                                }}
+                                className="flex-1 bg-white border border-gray-300 text-gray-700 hover:border-black text-[8px] font-mono font-black py-1 px-1.5 uppercase transition-all text-center cursor-pointer"
+                              >
+                                [ CHOOSE FILE ]
+                              </button>
+                              <button
+                                type="button"
+                                onClick={() => {
+                                  sounds.playTick();
+                                  setShowPresetSelector(!showPresetSelector);
+                                }}
+                                className="flex-1 bg-white border border-gray-300 text-gray-700 hover:border-black text-[8px] font-mono font-black py-1 px-1.5 uppercase transition-all text-center cursor-pointer"
+                              >
+                                [ PRESETS ]
+                              </button>
+                            </div>
+
+                            <input
+                              type="text"
+                              placeholder="OR PASTE IMAGE URL FROM WEB..."
+                              value={avatarUrl}
+                              onChange={(e) => {
+                                sounds.playTick();
+                                setAvatarUrl(e.target.value);
+                              }}
+                              className="w-full bg-white border border-gray-300 hover:border-gray-400 focus:border-shonen-orange px-1.5 py-1 font-mono text-[8px] text-gray-950 placeholder-gray-400 focus:outline-none transition-all"
+                            />
+                          </div>
+                        </div>
+
+                        <input
+                          type="file"
+                          ref={fileInputRef}
+                          onChange={handleFileChange}
+                          accept="image/*"
+                          className="hidden"
+                        />
+                        
+                        {/* Presets Selector Row */}
+                        {showPresetSelector && (
+                          <div className="mt-1 border-t border-dashed border-gray-200 pt-2 w-full">
+                            <p className="text-[7px] font-mono text-gray-400 uppercase mb-1.5 text-center font-bold tracking-wider">SELECT RETRO FIGHTER PORTRAITS</p>
+                            <div className="grid grid-cols-6 gap-1.5">
+                              {PRESET_AVATARS.map((preset, idx) => (
+                                <div
+                                  key={idx}
+                                  onClick={() => {
+                                    sounds.playSelect();
+                                    setAvatarUrl(preset.url);
+                                  }}
+                                  className={`aspect-square bg-white border cursor-pointer hover:border-shonen-orange transition-all p-0.5 overflow-hidden flex items-center justify-center ${
+                                    avatarUrl === preset.url ? 'border-shonen-orange ring-1' : 'border-gray-200'
+                                  }`}
+                                  title={preset.name}
+                                >
+                                  <img src={preset.url} alt={preset.name} className="w-full h-full object-cover" />
+                                </div>
+                              ))}
+                            </div>
+                          </div>
+                        )}
                       </div>
 
                       {/* Accent Tint */}

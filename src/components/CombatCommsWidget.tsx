@@ -197,6 +197,15 @@ export default function CombatCommsWidget({
   const fetchMessages = async (friendId: string) => {
     if (!currentUser) return;
     try {
+      // Load local storage messages first as base/fallback
+      const localMsgs = JSON.parse(localStorage.getItem('vote_arena_messages') || '[]');
+      const localFiltered = localMsgs.filter(
+        (m: any) =>
+          ((m.sender_id === currentUser.id && m.receiver_id === friendId) ||
+          (m.sender_id === friendId && m.receiver_id === currentUser.id)) &&
+          !blockedUsers.includes(m.sender_id)
+      );
+
       const { data, error } = await supabase
         .from('messages')
         .select('*')
@@ -204,30 +213,30 @@ export default function CombatCommsWidget({
         .order('created_at', { ascending: true });
 
       if (!error && data) {
-        // Filter out messages from blocked users
-        const filteredData = data.filter((m: any) => !blockedUsers.includes(m.sender_id));
-        setMessages(filteredData);
-      } else {
-        // Fallback local storage message log
-        const localMsgs = JSON.parse(localStorage.getItem('vote_arena_messages') || '[]');
-        const filtered = localMsgs.filter(
-          (m: any) =>
-            ((m.sender_id === currentUser.id && m.receiver_id === friendId) ||
-            (m.sender_id === friendId && m.receiver_id === currentUser.id)) &&
-            !blockedUsers.includes(m.sender_id)
+        const remoteFiltered = data.filter((m: any) => !blockedUsers.includes(m.sender_id));
+        
+        // Merge local storage and remote messages to prevent any instant-deletion or sync lag issues
+        const merged = [...localFiltered, ...remoteFiltered];
+        const unique = merged.filter((item, index, self) =>
+          self.findIndex(t => t.id === item.id) === index
         );
-        setMessages(filtered);
+        
+        // Sort chronologically
+        unique.sort((a, b) => new Date(a.created_at).getTime() - new Date(b.created_at).getTime());
+        setMessages(unique);
+      } else {
+        setMessages(localFiltered);
       }
     } catch (e) {
       // Fallback
       const localMsgs = JSON.parse(localStorage.getItem('vote_arena_messages') || '[]');
-      const filtered = localMsgs.filter(
+      const localFiltered = localMsgs.filter(
         (m: any) =>
           ((m.sender_id === currentUser.id && m.receiver_id === friendId) ||
           (m.sender_id === friendId && m.receiver_id === currentUser.id)) &&
           !blockedUsers.includes(m.sender_id)
       );
-      setMessages(filtered);
+      setMessages(localFiltered);
     }
   };
 
@@ -295,14 +304,16 @@ export default function CombatCommsWidget({
       // 1. Write message to Supabase
       const { error } = await supabase.from('messages').insert([newMsg]);
 
+      if (error && error.message?.includes('column')) {
+        // Strip out extra sender_username key if it doesn't exist on the DB schema
+        const { sender_username, ...dbPayload } = newMsg;
+        await supabase.from('messages').insert([dbPayload]);
+      }
+
       // 2. Also record in local storage as a robust fallback
       const localMsgs = JSON.parse(localStorage.getItem('vote_arena_messages') || '[]');
       localMsgs.push(newMsg);
       localStorage.setItem('vote_arena_messages', JSON.stringify(localMsgs));
-
-      if (error) {
-        console.warn('Real Supabase insertion failed, saved locally:', error.message);
-      }
     } catch (e) {
       // Backup safe saving
       const localMsgs = JSON.parse(localStorage.getItem('vote_arena_messages') || '[]');
@@ -572,8 +583,19 @@ export default function CombatCommsWidget({
                             className="p-2.5 bg-gray-50 border border-gray-200 hover:border-shonen-orange transition-all cursor-pointer flex justify-between items-center rounded-none"
                           >
                             <div className="flex items-center gap-2.5 min-w-0">
-                              <div className="w-7 h-7 bg-shonen-orange text-white text-[10px] font-mono font-black border border-black shrink-0 flex items-center justify-center">
-                                {friend.username.slice(0, 3).toUpperCase()}
+                              <div className="w-7 h-7 border border-black shrink-0 flex items-center justify-center overflow-hidden">
+                                {(() => {
+                                  const friendProfile = allProfiles?.find(p => p.id === friend.id);
+                                  const friendAvatarUrl = friendProfile?.avatar_url;
+                                  if (friendAvatarUrl) {
+                                    return <img src={friendAvatarUrl} alt={friend.username} className="w-full h-full object-cover" />;
+                                  }
+                                  return (
+                                    <div className="w-full h-full bg-shonen-orange text-white text-[10px] font-mono font-black flex items-center justify-center">
+                                      {friend.username.slice(0, 3).toUpperCase()}
+                                    </div>
+                                  );
+                                })()}
                               </div>
                               <div className="min-w-0">
                                 <span className="font-mono text-xs font-black text-gray-900 uppercase block leading-none mb-1">
@@ -638,20 +660,36 @@ export default function CombatCommsWidget({
                     ) : (
                       messages.map((m) => {
                         const isSelf = m.sender_id === currentUser.id;
+                        const senderProfile = allProfiles?.find(p => p.id === m.sender_id);
+                        const senderAvatarUrl = senderProfile?.avatar_url;
+
                         return (
                           <div
                             key={m.id}
-                            className={`flex flex-col max-w-[85%] ${isSelf ? 'ml-auto items-end' : 'mr-auto items-start'}`}
+                            className={`flex gap-2.5 max-w-[90%] items-start ${isSelf ? 'ml-auto flex-row-reverse' : 'mr-auto flex-row'}`}
                           >
-                            <span className="font-mono text-[8px] text-gray-400 uppercase mb-0.5">
-                              {isSelf ? 'YOU' : m.sender_username.toUpperCase()} // {new Date(m.created_at).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })}
-                            </span>
-                            <div className={`p-2.5 font-mono text-xs uppercase leading-relaxed rounded-none border ${
-                              isSelf 
-                                ? 'bg-shonen-orange/10 border-shonen-orange/30 text-gray-950' 
-                                : 'bg-gray-50 border-gray-200 text-gray-950'
-                            }`}>
-                              {m.text}
+                            {/* Small message avatar bubble */}
+                            <div className="w-6 h-6 rounded-full border border-gray-300 bg-gray-100 shrink-0 flex items-center justify-center overflow-hidden mt-1 shadow-xs">
+                              {senderAvatarUrl ? (
+                                <img src={senderAvatarUrl} alt={m.sender_username} className="w-full h-full object-cover" />
+                              ) : (
+                                <span className="text-[8px] font-mono font-black text-gray-600">
+                                  {m.sender_username.slice(0, 2).toUpperCase()}
+                                </span>
+                              )}
+                            </div>
+
+                            <div className={`flex flex-col ${isSelf ? 'items-end' : 'items-start'}`}>
+                              <span className="font-mono text-[7px] text-gray-400 uppercase mb-0.5">
+                                {isSelf ? 'YOU' : m.sender_username.toUpperCase()} // {new Date(m.created_at).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })}
+                              </span>
+                              <div className={`p-2.5 font-mono text-xs uppercase leading-relaxed rounded-none border ${
+                                isSelf 
+                                  ? 'bg-shonen-orange/10 border-shonen-orange/30 text-gray-950' 
+                                  : 'bg-gray-50 border-gray-200 text-gray-950'
+                              }`}>
+                                {m.text}
+                              </div>
                             </div>
                           </div>
                         );

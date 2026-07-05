@@ -66,6 +66,7 @@ export default function App() {
   // Modal Open state
   const [isModalOpen, setIsModalOpen] = useState(false);
   const [isNotificationOpen, setIsNotificationOpen] = useState(false);
+  const [hasCheckedNotifications, setHasCheckedNotifications] = useState(false);
   
   // Audio Mute state
   const [isMuted, setIsMuted] = useState(false);
@@ -2115,12 +2116,13 @@ export default function App() {
               onClick={() => {
                 sounds.playSelect();
                 setIsNotificationOpen(true);
+                setHasCheckedNotifications(true);
               }}
               title="Neural Mentions (Notifications)"
               className="p-2 border-2 border-shonen-orange/30 text-shonen-orange hover:bg-shonen-orange/5 hover:border-shonen-orange/70 transition-all duration-200 rounded-sm relative cursor-pointer"
             >
               <Bell className="w-4 h-4" />
-              {getMentions().length > 0 && (
+              {!hasCheckedNotifications && getMentions().length > 0 && (
                 <span className="absolute -top-1.5 -right-1.5 bg-shonen-orange text-white text-[8px] font-black w-4.5 h-4.5 rounded-full flex items-center justify-center animate-pulse border border-white">
                   {getMentions().length}
                 </span>
@@ -2425,6 +2427,7 @@ export default function App() {
         onDeletePoll={handleDeletePoll}
         viewMode={viewMode}
         onToggleViewMode={setViewMode}
+        allProfiles={allProfiles}
       />
 
       {/* SECTION 2: 🏆 All Tournaments */}
@@ -2473,6 +2476,7 @@ export default function App() {
         onDeletePoll={handleDeletePoll}
         viewMode={viewMode}
         onToggleViewMode={setViewMode}
+        allProfiles={allProfiles}
       />
 
       {/* CREATIVE STATIC SPECIFICATION CARD BOARD (Arcade details) */}

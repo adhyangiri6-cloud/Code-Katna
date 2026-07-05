@@ -15,6 +15,7 @@ interface OperatorProfileModalProps {
     gender?: string;
     age?: number | null;
     is_premium?: boolean;
+    avatar_url?: string;
   } | null;
   currentUser: any;
   follows: DbFollow[];
@@ -177,12 +178,16 @@ export default function OperatorProfileModal({
             <div className="space-y-6">
               {/* Profile Avatar / Logo with manga elements */}
               <div className="flex items-center gap-4 bg-gray-50 border border-gray-200 p-4 relative">
-                <div className={`w-14 h-14 font-mono font-black rounded-none shrink-0 flex items-center justify-center text-lg border-2 ${
+                <div className={`w-14 h-14 font-mono font-black rounded-none shrink-0 flex items-center justify-center text-lg border-2 overflow-hidden ${
                   profile.is_premium 
                     ? 'bg-shonen-orange border-black text-white shadow-sm' 
                     : 'bg-white border-black text-black'
                 }`}>
-                  {profile.username.slice(0, 3).toUpperCase()}
+                  {profile.avatar_url ? (
+                    <img src={profile.avatar_url} alt={profile.username} className="w-full h-full object-cover" />
+                  ) : (
+                    profile.username.slice(0, 3).toUpperCase()
+                  )}
                 </div>
                 <div className="min-w-0 flex-1">
                   <h3 className="text-xl font-extrabold text-gray-950 uppercase tracking-tight flex items-center gap-1.5 truncate">

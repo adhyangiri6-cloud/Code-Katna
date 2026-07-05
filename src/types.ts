@@ -66,6 +66,7 @@ export interface User {
   premium_expires_at?: string;
   is_admin?: boolean;
   email?: string;
+  avatar_url?: string;
 }
 
 export interface DbComment {
