@@ -234,7 +234,7 @@ export default function LaunchRoomModal({ isOpen, onClose, onAddPoll, currentUse
             animate={{ scale: 1, y: 0, opacity: 1 }}
             exit={{ scale: 0.9, y: 50, opacity: 0 }}
             transition={{ type: 'spring', duration: 0.5, bounce: 0.2 }}
-            className="relative w-full max-w-lg bg-white border-4 border-black p-6 md:p-8 clip-cyber-card overflow-hidden z-50 shadow-lg text-gray-950"
+            className="relative w-full max-w-lg max-h-[90vh] overflow-y-auto bg-white border-4 border-black p-6 md:p-8 clip-cyber-card z-50 shadow-lg text-gray-950 scrollbar-thin"
           >
             {/* Caution Hatching Border at the top */}
             <div className="absolute top-0 left-0 right-0 h-2 bg-[linear-gradient(45deg,#FF6B00_25%,#fff_25%,#fff_50%,#FF6B00_50%,#FF6B00_75%,#fff_75%,#fff)] bg-[size:16px_16px]" />

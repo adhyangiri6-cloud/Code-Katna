@@ -3,7 +3,7 @@ import { motion, AnimatePresence } from 'motion/react';
 import { supabase } from '../lib/supabaseClient';
 import { sounds } from './SoundManager';
 import { 
-  MessageSquare, Send, X, Terminal, Users, User, Radio, Sparkles, Zap, ChevronUp, ChevronDown, Check, RefreshCw 
+  MessageSquare, Send, X, Terminal, Users, User, Radio, Sparkles, Zap, Check, Trash2, Smile, Image, Film, MessageCircle
 } from 'lucide-react';
 import { DbFollow } from '../types';
 
@@ -36,6 +36,29 @@ interface SharedPoll {
   created_at: string;
 }
 
+// Predefined Anime GIFs & Expression Stickers with verified animated Giphy endpoints
+const CHIBI_STICKERS = [
+  { name: 'HAPPY GOKU', url: 'https://i.giphy.com/media/v1.Y2lkPTc5MGI3NjExM3pjdWc3ZHBnYjF6cmJ0NnR1MG1reWRnYW12cGJldTh5czA1bnJ4NyZlcD12MV9pbnRlcm5hbF9naWZfYnlfaWQmY3Q9cw/9f2hmeIUtWYHC/giphy.gif' },
+  { name: 'LUFFY MUNCH', url: 'https://i.giphy.com/media/v1.Y2lkPTc5MGI3NjExMmpzMm4zNXZ2eTh2cWw3Z3g2czVmdmdidDF2MDU0bzEyb3hscWRzOCZlcD12MV9pbnRlcm5hbF9naWZfYnlfaWQmY3Q9cw/13fTar4VLY1v4A/giphy.gif' },
+  { name: 'PIKACHU WAVE', url: 'https://i.giphy.com/media/v1.Y2lkPTc5MGI3NjExMXphNGptNDkzdG85eTJ1cmFvMnUwaXcyczBrODdkdnN2ZXNndGZ2MCZlcD12MV9pbnRlcm5hbF9naWZfYnlfaWQmY3Q9cw/xuXzc9vguZ7zO/giphy.gif' },
+  { name: 'SAILOR MOON CHIBI', url: 'https://i.giphy.com/media/v1.Y2lkPTc5MGI3NjExMG0zYm0yZ2N5NHN6MnB6ZHJ5bWcxbXp6cmVjNGx6ZnNsc3hjeWdveCZlcD12MV9pbnRlcm5hbF9naWZfYnlfaWQmY3Q9cw/9JnRMIFMYAKpa/giphy.gif' },
+  { name: 'PIXEL HEART', url: 'https://i.giphy.com/media/v1.Y2lkPTc5MGI3NjExMWNreWc4bWV4amRxM3lhZTFjOTlhajB0MDJ6bTh0a3g3am1zbnJmdyZlcD12MV9pbnRlcm5hbF9naWZfYnlfaWQmY3Q9cw/3oz8xALRf1vM50XNTo/giphy.gif' },
+  { name: 'GAME OVER', url: 'https://i.giphy.com/media/v1.Y2lkPTc5MGI3NjExaXZ0Z3F6MTB3ZW92czB3dHoxMnd3NXZmdmR6ZnA1bHRqM3hldXo5byZlcD12MV9pbnRlcm5hbF9naWZfYnlfaWQmY3Q9cw/bFv9EBXBdJ6b6/giphy.gif' },
+  { name: 'ANIME THUMBS UP', url: 'https://i.giphy.com/media/v1.Y2lkPTc5MGI3NjExaW50ZXJuYWxfZ2lmX2J5X2lkJmN0PWc/XF9r9Lg8S5P06qgCMy/giphy.gif' },
+  { name: 'CHIBI CRY', url: 'https://i.giphy.com/media/v1.Y2lkPTc5MGI3NjExaW50ZXJuYWxfZ2lmX2J5X2lkJmN0PXN3/AAsj7j6nHIPZG/giphy.gif' },
+];
+
+const ACTION_GIFS = [
+  { name: 'GOKU POWER UP', url: 'https://i.giphy.com/media/v1.Y2lkPTc5MGI3NjExYTNuOHo2bmJ5NWdzZjNoZXJrbnpsczVrdmU4NWRlYTB5dWRlNDJidSZlcD12MV9pbnRlcm5hbF9naWZfYnlfaWQmY3Q9Z2lmX3NlYXJjaCZjdD1n/t6s3CHvOfp_Xq/giphy.gif' },
+  { name: 'ZORO SLASH', url: 'https://i.giphy.com/media/v1.Y2lkPTc5MGI3NjExNmtpbnB6Mmx4cjIyeHV4Nzlza3M5MGJnYnM5YzdodHNoMHB0cmZlMCZlcD12MV9pbnRlcm5hbF9naWZfYnlfaWQmY3Q9Z2lmX3NlYXJjaCZjdD1n/4OV1bLOIWwIXK/giphy.gif' },
+  { name: 'NARUTO RUN', url: 'https://i.giphy.com/media/v1.Y2lkPTc5MGI3NjExOTV4YmxhbzN4M245dGVzMHp5OHU0cm9pOG1kdm1yMWc1d3p0NDN6MSZlcD12MV9pbnRlcm5hbF9naWZfYnlfaWQmY3Q9Z2lmX3NlYXJjaCZjdD1n/JRlqKEee9vIp5ZWoN1/giphy.gif' },
+  { name: 'SAITAMA OK', url: 'https://i.giphy.com/media/v1.Y2lkPTc5MGI3NjExaW50ZXJuYWxfZ2lmX2J5X2lkJmN0PWc/32O8O6RQL1qy3sTJln/giphy.gif' },
+  { name: 'DEMON SLAYER SPARKS', url: 'https://i.giphy.com/media/v1.Y2lkPTc5MGI3NjExaW50ZXJuYWxfZ2lmX2J5X2lkJmN0PWc/fWAlpo66f9vWM/giphy.gif' },
+  { name: 'NEON WAVE', url: 'https://i.giphy.com/media/v1.Y2lkPTc5MGI3NjExMXB0M3ByOWpxNWc0YWpxcmgyNHZ3cDFpYTBpNXE3YW9rZmRlYmNxOCZlcD12MV9pbnRlcm5hbF9naWZfYnlfaWQmY3Q9Z2lmX3NlYXJjaCZjdD1n/b78Grcv8976GA/giphy.gif' },
+  { name: 'ANIME DANCE', url: 'https://i.giphy.com/media/v1.Y2lkPTc5MGI3NjExNndrMWR2cHpxN3B3cjBzdTh4NWNjcGlwdGFobWdzcjF4ZXdtcjEzbSZlcD12MV9pbnRlcm5hbF9naWZfYnlfaWQmY3Q9Z2lmX3NlYXJjaCZjdD1n/d1E2vyhPsgaGc/giphy.gif' },
+  { name: 'REACTION WOW', url: 'https://i.giphy.com/media/v1.Y2lkPTc5MGI3NjExYTNuOHo2bmJ5NWdzZjNoZXJrbnpsczVrdmU4NWRlYTB5dWRlNDJidSZlcD12MV9pbnRlcm5hbF9naWZfYnlfaWQmY3Q9Z2lmX3NlYXJjaCZjdD1n/12RfP2Od6VaALy/giphy.gif' },
+];
+
 export default function CombatCommsWidget({
   currentUser,
   follows,
@@ -59,6 +82,29 @@ export default function CombatCommsWidget({
   const [searchResults, setSearchResults] = useState<any[]>([]);
   const [searching, setSearching] = useState(false);
 
+  // Sticker & GIF selector states
+  const [showMediaDrawer, setShowMediaDrawer] = useState(false);
+  const [mediaTab, setMediaTab] = useState<'GIF' | 'STICKER'>('GIF');
+
+  // Deletion and Unread notification state managers
+  const [lastReadTimes, setLastReadTimes] = useState<Record<string, string>>(() => {
+    try {
+      return JSON.parse(localStorage.getItem('vote_arena_last_read_times') || '{}');
+    } catch {
+      return {};
+    }
+  });
+
+  const [clearedChatTimestamps, setClearedChatTimestamps] = useState<Record<string, string>>(() => {
+    try {
+      return JSON.parse(localStorage.getItem('vote_arena_cleared_chat_timestamps') || '{}');
+    } catch {
+      return {};
+    }
+  });
+
+  const [unreadCounts, setUnreadCounts] = useState<Record<string, number>>({});
+
   const messagesEndRef = useRef<HTMLDivElement | null>(null);
   const pollIntervalRef = useRef<any>(null);
 
@@ -78,8 +124,6 @@ export default function CombatCommsWidget({
           cleanVal = val.substring(6);
         }
 
-        // Write a query to look up 'profiles' table using Supabase.
-        // Scan username AND arena_id columns. We also scan id column for resilience.
         const { data, error } = await supabase
           .from('profiles')
           .select('*')
@@ -196,14 +240,18 @@ export default function CombatCommsWidget({
   // 3. Fetch conversation messages
   const fetchMessages = async (friendId: string) => {
     if (!currentUser) return;
+    const clearedTime = clearedChatTimestamps[friendId] || '1970-01-01T00:00:00.000Z';
+
+    let fallbackMsgs: Message[] = [];
     try {
       // Load local storage messages first as base/fallback
       const localMsgs = JSON.parse(localStorage.getItem('vote_arena_messages') || '[]');
-      const localFiltered = localMsgs.filter(
+      fallbackMsgs = localMsgs.filter(
         (m: any) =>
           ((m.sender_id === currentUser.id && m.receiver_id === friendId) ||
           (m.sender_id === friendId && m.receiver_id === currentUser.id)) &&
-          !blockedUsers.includes(m.sender_id)
+          !blockedUsers.includes(m.sender_id) &&
+          m.created_at > clearedTime
       );
 
       const { data, error } = await supabase
@@ -213,10 +261,10 @@ export default function CombatCommsWidget({
         .order('created_at', { ascending: true });
 
       if (!error && data) {
-        const remoteFiltered = data.filter((m: any) => !blockedUsers.includes(m.sender_id));
+        const remoteFiltered = data.filter((m: any) => !blockedUsers.includes(m.sender_id) && m.created_at > clearedTime);
         
         // Merge local storage and remote messages to prevent any instant-deletion or sync lag issues
-        const merged = [...localFiltered, ...remoteFiltered];
+        const merged = [...fallbackMsgs, ...remoteFiltered];
         const unique = merged.filter((item, index, self) =>
           self.findIndex(t => t.id === item.id) === index
         );
@@ -225,18 +273,10 @@ export default function CombatCommsWidget({
         unique.sort((a, b) => new Date(a.created_at).getTime() - new Date(b.created_at).getTime());
         setMessages(unique);
       } else {
-        setMessages(localFiltered);
+        setMessages(fallbackMsgs);
       }
     } catch (e) {
-      // Fallback
-      const localMsgs = JSON.parse(localStorage.getItem('vote_arena_messages') || '[]');
-      const localFiltered = localMsgs.filter(
-        (m: any) =>
-          ((m.sender_id === currentUser.id && m.receiver_id === friendId) ||
-          (m.sender_id === friendId && m.receiver_id === currentUser.id)) &&
-          !blockedUsers.includes(m.sender_id)
-      );
-      setMessages(localFiltered);
+      setMessages(fallbackMsgs);
     }
   };
 
@@ -246,13 +286,18 @@ export default function CombatCommsWidget({
       setLoadingMsgs(true);
       fetchMessages(activeChannel.id).then(() => setLoadingMsgs(false));
 
-      // Clear existing interval
       if (pollIntervalRef.current) clearInterval(pollIntervalRef.current);
 
       // Poll messages every 3 seconds
       pollIntervalRef.current = setInterval(() => {
         fetchMessages(activeChannel.id);
       }, 3000);
+
+      // Mark channel as read instantly
+      const nowStr = new Date().toISOString();
+      const updatedLastRead = { ...lastReadTimes, [activeChannel.id]: nowStr };
+      setLastReadTimes(updatedLastRead);
+      localStorage.setItem('vote_arena_last_read_times', JSON.stringify(updatedLastRead));
 
       return () => {
         if (pollIntervalRef.current) clearInterval(pollIntervalRef.current);
@@ -270,16 +315,46 @@ export default function CombatCommsWidget({
     }
   }, [messages]);
 
-  // Calculate unread/notification trigger (e.g. total new shared polls + channels active count)
-  useEffect(() => {
-    if (!isOpen) {
-      setUnreadCount(sharedPolls.length);
-    } else {
-      setUnreadCount(0);
-    }
-  }, [sharedPolls, isOpen]);
+  // 6. Dynamic unread engine calculations (periodic & reactive)
+  const calculateUnreadCounts = () => {
+    if (!currentUser) return;
+    try {
+      const localMsgs = JSON.parse(localStorage.getItem('vote_arena_messages') || '[]');
+      const counts: Record<string, number> = {};
 
-  // 6. Send message pipeline
+      mutualFollows.forEach(friend => {
+        const lastRead = lastReadTimes[friend.id] || '1970-01-01T00:00:00.000Z';
+        const clearedTime = clearedChatTimestamps[friend.id] || '1970-01-01T00:00:00.000Z';
+
+        // Filter messages sent by friend to current user that were created after lastRead AND after clearedTime
+        const unreadList = localMsgs.filter((m: any) => 
+          m.sender_id === friend.id &&
+          m.receiver_id === currentUser.id &&
+          m.created_at > lastRead &&
+          m.created_at > clearedTime
+        );
+
+        counts[friend.id] = unreadList.length;
+      });
+
+      setUnreadCounts(counts);
+
+      const totalUnreadMessages = Object.values(counts).reduce((acc, c) => acc + c, 0);
+      setUnreadCount(totalUnreadMessages + sharedPolls.length);
+    } catch (e) {
+      console.warn("Failed to update unread counts", e);
+    }
+  };
+
+  // Recalculate unread counts
+  useEffect(() => {
+    calculateUnreadCounts();
+    // Run an extra check loop every 4 seconds in the background
+    const unreadCheckInterval = setInterval(calculateUnreadCounts, 4000);
+    return () => clearInterval(unreadCheckInterval);
+  }, [messages, lastReadTimes, clearedChatTimestamps, mutualFollows, sharedPolls]);
+
+  // 7. Send message pipeline
   const handleSendMessage = async (e: React.FormEvent) => {
     e.preventDefault();
     if (!msgInput.trim() || !currentUser || !activeChannel) return;
@@ -322,7 +397,78 @@ export default function CombatCommsWidget({
     }
   };
 
-  // 7. Scroll & Flash shared poll target
+  // 8. Send Gifs & Stickers pipeline
+  const handleSendMedia = async (url: string, type: 'GIF' | 'STICKER') => {
+    if (!currentUser || !activeChannel) return;
+    sounds.playSelect();
+
+    const mediaPayload = `[${type}] ${url}`;
+    const newMsg: Message = {
+      id: `m-${Date.now()}-${Math.random().toString(36).substr(2, 5)}`,
+      sender_id: currentUser.id,
+      receiver_id: activeChannel.id,
+      text: mediaPayload,
+      created_at: new Date().toISOString(),
+      sender_username: currentUser.username
+    };
+
+    // Optimistic local state update
+    setMessages(prev => [...prev, newMsg]);
+    setShowMediaDrawer(false);
+
+    try {
+      // Write message to Supabase
+      const { error } = await supabase.from('messages').insert([newMsg]);
+      if (error && error.message?.includes('column')) {
+        const { sender_username, ...dbPayload } = newMsg;
+        await supabase.from('messages').insert([dbPayload]);
+      }
+
+      // Record in local storage as a robust fallback
+      const localMsgs = JSON.parse(localStorage.getItem('vote_arena_messages') || '[]');
+      localMsgs.push(newMsg);
+      localStorage.setItem('vote_arena_messages', JSON.stringify(localMsgs));
+    } catch (e) {
+      const localMsgs = JSON.parse(localStorage.getItem('vote_arena_messages') || '[]');
+      localMsgs.push(newMsg);
+      localStorage.setItem('vote_arena_messages', JSON.stringify(localMsgs));
+    }
+  };
+
+  // 9. Wipe/Erase Chat logs with contact
+  const handleDeleteChat = async (friendId: string, friendUsername: string) => {
+    if (!currentUser) return;
+    sounds.playTick();
+    const confirmed = window.confirm(
+      `⚠️ COMBAT LOGS ERASE REQUISITION:\n\nARE YOU SURE YOU WANT TO COMPLETELY DESTROY ALL CORRESPONDENCE AND SIGNALS TRANSFERRED WITH OP [${friendUsername.toUpperCase()}]?\n\nTHIS ACTION CANNOT BE UNDONE.`
+    );
+    if (!confirmed) return;
+
+    sounds.playImpact();
+    const nowStr = new Date().toISOString();
+
+    // Store clear action timestamp locally
+    const updatedCleared = { ...clearedChatTimestamps, [friendId]: nowStr };
+    setClearedChatTimestamps(updatedCleared);
+    localStorage.setItem('vote_arena_cleared_chat_timestamps', JSON.stringify(updatedCleared));
+
+    // Remove active conversation messages from local backup file
+    try {
+      const localMsgs = JSON.parse(localStorage.getItem('vote_arena_messages') || '[]');
+      const filtered = localMsgs.filter((m: any) => 
+        !((m.sender_id === currentUser.id && m.receiver_id === friendId) || 
+          (m.sender_id === friendId && m.receiver_id === currentUser.id))
+      );
+      localStorage.setItem('vote_arena_messages', JSON.stringify(filtered));
+    } catch (e) {
+      console.warn(e);
+    }
+
+    setMessages([]);
+    alert(`💥 DATA FLUSHED: Secure channel log history with OP [${friendUsername.toUpperCase()}] has been eradicated.`);
+  };
+
+  // 10. Scroll & Flash shared poll target
   const handleScrollToPoll = (pollId: string) => {
     sounds.playSelect();
     const element = document.getElementById(`poll-card-${pollId}`);
@@ -348,7 +494,7 @@ export default function CombatCommsWidget({
 
   return (
     <>
-      {/* Floating launcher trigger */}
+      {/* Floating launcher trigger with bright message notification badge */}
       <div className="fixed bottom-6 right-6 z-[90]">
         <motion.button
           whileHover={{ scale: 1.05 }}
@@ -357,28 +503,30 @@ export default function CombatCommsWidget({
             sounds.playSelect();
             setIsOpen(!isOpen);
           }}
-          className={`px-5 py-3.5 border-2 font-mono text-xs font-black uppercase tracking-wider flex items-center gap-2 shadow-lg cursor-pointer rounded-none relative overflow-hidden transition-all duration-300 ${
+          className={`px-5 py-3.5 border-2 font-mono text-xs font-black uppercase tracking-wider flex items-center gap-2 shadow-lg cursor-pointer rounded-none relative overflow-visible transition-all duration-300 ${
             isOpen 
               ? 'bg-black border-black text-white' 
               : 'bg-white border-black text-black'
           }`}
           style={{ clipPath: 'polygon(0 0, 100% 0, 92% 100%, 0% 100%)' }}
         >
-          {/* Pulsing indicator */}
+          {/* Pulsing state indicator */}
           <span className={`w-2.5 h-2.5 rounded-full shrink-0 ${
             isOpen ? 'bg-white animate-ping' : 'bg-shonen-orange animate-pulse'
           }`} />
           
           <span>{isOpen ? 'CLOSE COMMS' : '📡 COMBAT COMMS'}</span>
           
-          {/* Badge indicator */}
+          {/* Main Comms Red Badge Indicator showing total unread messages & beams */}
           {unreadCount > 0 && (
-            <span className="absolute top-0.5 right-1 w-2.5 h-2.5 bg-shonen-orange rounded-full" />
+            <span className="absolute -top-2 -left-2 bg-shonen-orange text-white text-[10px] font-black w-6 h-6 rounded-full flex items-center justify-center animate-pulse border-2 border-black shadow-md">
+              {unreadCount}
+            </span>
           )}
         </motion.button>
       </div>
 
-      {/* Slide-out Terminal Panel */}
+      {/* Slide-out Terminal Panel - REDESIGNED INSTAGRAM STYLE */}
       <AnimatePresence>
         {isOpen && (
           <motion.div
@@ -386,43 +534,63 @@ export default function CombatCommsWidget({
             animate={{ opacity: 1, y: 0, scale: 1 }}
             exit={{ opacity: 0, y: 100, scale: 0.95 }}
             transition={{ type: 'spring', damping: 25, stiffness: 200 }}
-            className="fixed bottom-24 right-6 w-full max-w-sm h-[500px] bg-white border-4 border-black flex flex-col justify-between z-[90] shadow-lg clip-cyber-card overflow-hidden text-gray-950"
+            className="fixed bottom-24 right-6 w-[calc(100%-2rem)] max-w-sm md:max-w-4xl md:w-[850px] h-[540px] md:h-[620px] bg-white border-4 border-black flex flex-col justify-between z-[90] shadow-2xl clip-cyber-card overflow-hidden text-gray-950"
           >
             {/* Caution stripes */}
             <div className="absolute top-0 left-0 right-0 h-1.5 bg-[linear-gradient(45deg,#FF6B00_25%,#fff_25%,#fff_50%,#FF6B00_50%,#FF6B00_75%,#fff_75%,#fff)] bg-[size:16px_16px] z-10" />
 
-            {/* Header */}
-            <div className="p-4 bg-gray-50 border-b border-gray-200 flex justify-between items-center z-10 pt-5">
+            {/* Header - Shared across channels */}
+            <div className="p-4 bg-gray-50 border-b border-gray-200 flex justify-between items-center z-10 pt-5 shrink-0">
               <div className="flex items-center gap-2">
                 <Terminal className="w-4 h-4 text-shonen-orange animate-pulse" />
                 <div className="min-w-0">
                   <span className="font-mono text-[9px] text-gray-500 uppercase tracking-widest block">
-                    VOTE_ARENA // COMMS_TUNNEL
+                    VOTE_ARENA // INSTAGRAM_MESSAGE_COLUMN
                   </span>
                   <span className="font-mono text-xs font-black text-gray-950 uppercase tracking-wider block">
-                    {activeChannel ? `OP: ${activeChannel.username.toUpperCase()}` : 'SECURED CHANNELS'}
+                    {activeChannel ? `SECURED STREAM WITH @${activeChannel.username.toUpperCase()}` : 'CODENAME INBOX DIRECTORY'}
                   </span>
                 </div>
               </div>
-              <button
-                onClick={() => {
-                  sounds.playTick();
-                  setIsOpen(false);
-                }}
-                className="p-1 border border-gray-200 hover:border-shonen-orange hover:text-shonen-orange transition-colors text-gray-500"
-              >
-                <X className="w-3.5 h-3.5" />
-              </button>
+              
+              <div className="flex items-center gap-2">
+                {/* Clear chat logs context button */}
+                {activeChannel && (
+                  <button
+                    onClick={() => handleDeleteChat(activeChannel.id, activeChannel.username)}
+                    className="flex items-center gap-1 font-mono text-[8px] text-red-600 border border-red-200 hover:border-red-600 px-2 py-1 bg-red-50 hover:bg-red-600 hover:text-white uppercase font-black transition-all cursor-pointer rounded-xs"
+                    title="ERASE LOG HISTORY"
+                  >
+                    <Trash2 className="w-3 h-3" />
+                    <span className="hidden sm:inline">ERASE FEED</span>
+                  </button>
+                )}
+
+                <button
+                  onClick={() => {
+                    sounds.playTick();
+                    setIsOpen(false);
+                  }}
+                  className="p-1 border border-gray-200 hover:border-shonen-orange hover:text-shonen-orange transition-colors text-gray-500"
+                >
+                  <X className="w-3.5 h-3.5" />
+                </button>
+              </div>
             </div>
 
-            {/* Main Terminal Viewport */}
-            <div className="flex-1 overflow-hidden flex flex-col bg-white">
-              {!activeChannel ? (
-                /* 1. CHANNEL SELECTION SCREEN */
-                <div className="flex-1 flex flex-col overflow-y-auto p-4 space-y-5">
+            {/* Main Terminal Viewport - DUAL COLUMN SPLIT */}
+            <div className="flex-1 overflow-hidden flex flex-row bg-white relative">
+              
+              {/* LEFT COLUMN: THE INBOX SIDEBAR (Always on for desktop, toggles on mobile) */}
+              <div 
+                className={`w-full md:w-[310px] border-r border-gray-200 flex flex-col shrink-0 bg-gray-50/70 h-full ${
+                  activeChannel ? 'hidden md:flex' : 'flex'
+                }`}
+              >
+                <div className="flex-1 overflow-y-auto p-3 space-y-4 scrollbar-thin">
                   
                   {/* SEARCH BAR COMPONENT */}
-                  <div className="space-y-1.5 border-b border-gray-100 pb-3">
+                  <div className="space-y-1.5">
                     <span className="font-mono text-[9px] text-shonen-orange font-extrabold uppercase tracking-widest block">
                       🔎 NEURAL NETWORK LOCATOR
                     </span>
@@ -431,11 +599,11 @@ export default function CombatCommsWidget({
                         type="text"
                         value={searchTerm}
                         onChange={(e) => setSearchTerm(e.target.value)}
-                        placeholder="🔍 INPUT OPERATOR NAME OR UNIQUE ARENA ID..."
-                        className="w-full bg-white border-2 border-gray-200 hover:border-gray-300 focus:border-shonen-orange px-3 py-2 font-mono text-[10px] text-gray-950 focus:outline-none placeholder-gray-400 uppercase transition-all"
+                        placeholder="SEARCH OPERATOR OR ID..."
+                        className="w-full bg-white border-2 border-gray-200 hover:border-gray-300 focus:border-shonen-orange px-2.5 py-1.5 font-mono text-[9px] text-gray-950 focus:outline-none placeholder-gray-400 uppercase transition-all"
                       />
                       {searching && (
-                        <span className="absolute right-3 top-2.5 font-mono text-[9px] text-shonen-orange animate-pulse">
+                        <span className="absolute right-2 top-2 font-mono text-[8px] text-shonen-orange animate-pulse">
                           SCANNING...
                         </span>
                       )}
@@ -444,17 +612,17 @@ export default function CombatCommsWidget({
 
                   {/* SEARCH RESULTS VIEW */}
                   {searchTerm.trim() !== '' && (
-                    <div className="space-y-2 border-l-2 border-shonen-orange pl-2.5 py-1">
+                    <div className="space-y-1.5 border-l-2 border-shonen-orange pl-2 py-0.5">
                       <span className="font-mono text-[8px] text-shonen-orange font-extrabold uppercase tracking-wider block">
                         LOCATED SECTOR SIGNALS ({searchResults.length})
                       </span>
                       
                       {searchResults.length === 0 ? (
-                        <p className="font-mono text-[8px] text-gray-500 uppercase border border-gray-200 bg-gray-50 p-3 text-center">
-                          NO RECON SIGNALS MATCHING TERM.
+                        <p className="font-mono text-[8px] text-gray-500 uppercase border border-gray-200 bg-gray-50 p-2 text-center">
+                          NO RECON SIGNALS FOUND.
                         </p>
                       ) : (
-                        <div className="space-y-1.5 max-h-40 overflow-y-auto pr-1">
+                        <div className="space-y-1 max-h-36 overflow-y-auto">
                           {searchResults.map((prof) => {
                             const isSelf = currentUser && prof.id === currentUser.id;
                             const isFollowed = follows.some(
@@ -464,21 +632,17 @@ export default function CombatCommsWidget({
                             return (
                               <div
                                 key={prof.id}
-                                className="p-2 bg-gray-50 border border-gray-100 hover:border-shonen-orange transition-all flex justify-between items-center gap-2 rounded-none"
+                                className="p-1.5 bg-white border border-gray-100 hover:border-shonen-orange transition-all flex justify-between items-center gap-2 rounded-none"
                               >
                                 <div 
-                                  className="min-w-0 cursor-pointer group"
+                                  className="min-w-0 cursor-pointer group flex-1"
                                   onClick={() => {
                                     sounds.playSelect();
                                     onOpenProfile(prof);
                                   }}
-                                  title="VIEW OPERATOR DOSSIER"
                                 >
-                                  <span className="font-mono text-xs font-black text-gray-900 group-hover:text-shonen-orange uppercase block leading-none mb-1 underline decoration-dotted decoration-shonen-orange/50">
+                                  <span className="font-mono text-[10px] font-black text-gray-950 group-hover:text-shonen-orange uppercase block truncate">
                                     {prof.username} {isSelf && '(YOU)'}
-                                  </span>
-                                  <span className="font-mono text-[8px] text-gray-400 group-hover:text-shonen-orange/80 uppercase block leading-none">
-                                    ARENA-{prof.id.slice(0, 8).toUpperCase()}
                                   </span>
                                 </div>
                                 
@@ -493,13 +657,9 @@ export default function CombatCommsWidget({
                                         if (onFollow) await onFollow(prof.id, prof.username);
                                       }
                                     }}
-                                    className={`font-mono text-[8px] px-2 py-1 font-black uppercase transition-all shrink-0 border-2 ${
-                                      isFollowed
-                                        ? 'bg-gray-100 border-gray-200 text-gray-500 hover:text-black hover:border-black'
-                                        : 'bg-shonen-orange border-black text-white hover:bg-black hover:border-black'
-                                    }`}
+                                    className="font-mono text-[7px] px-1.5 py-0.5 font-black uppercase transition-all shrink-0 border border-black bg-shonen-orange text-white"
                                   >
-                                    {isFollowed ? '[ ⚡ DISCONNECT ]' : '[ ⚡ ENGAGE FOLLOW ]'}
+                                    {isFollowed ? 'UNFOLLOW' : 'FOLLOW'}
                                   </button>
                                 )}
                               </div>
@@ -507,41 +667,39 @@ export default function CombatCommsWidget({
                           })}
                         </div>
                       )}
-                      
-                      <div className="h-px bg-gray-100 my-1" />
                     </div>
                   )}
 
-                  {/* INCOMING SHARED POLLS (TRANSMISSIONS) */}
-                  <div className="space-y-2">
+                  {/* INCOMING BEAMS (SHARED POLLS) */}
+                  <div className="space-y-1.5">
                     <div className="flex items-center gap-1">
                       <Radio className="w-3.5 h-3.5 text-shonen-orange animate-pulse shrink-0" />
                       <span className="font-mono text-[9px] text-shonen-orange font-extrabold uppercase tracking-widest">
-                        📡 INCOMING BEAM TRANSMISSIONS ({sharedPolls.length})
+                        📡 INCOMING BEAMS ({sharedPolls.length})
                       </span>
                     </div>
 
                     {sharedPolls.length === 0 ? (
-                      <p className="font-mono text-[8px] text-gray-400 uppercase border border-gray-200 bg-gray-50 p-3 text-center">
-                        NO INCOMING STREAM OVERRIDES REPORTED BY OPERATORS.
+                      <p className="font-mono text-[8px] text-gray-400 uppercase border border-gray-100 bg-white/50 p-2 text-center rounded-sm">
+                        NO BEAM TRANSMISSIONS INBOUND.
                       </p>
                     ) : (
-                      <div className="space-y-1.5 max-h-36 overflow-y-auto">
+                      <div className="space-y-1 max-h-24 overflow-y-auto">
                         {sharedPolls.map((sp) => (
                           <div
                             key={sp.id}
                             onClick={() => handleScrollToPoll(sp.poll_id)}
-                            className="p-2 bg-gray-50 hover:bg-gray-100 border border-gray-200 hover:border-shonen-orange transition-all cursor-pointer flex justify-between items-center gap-2 rounded-none"
+                            className="p-1.5 bg-white hover:bg-gray-100 border border-gray-200 hover:border-shonen-orange transition-all cursor-pointer flex justify-between items-center gap-2 rounded-none"
                           >
                             <div className="min-w-0">
-                              <span className="font-mono text-[8px] text-gray-400 uppercase block leading-none">
-                                FROM OP {sp.sender_username.toUpperCase()}
+                              <span className="font-mono text-[7px] text-gray-400 uppercase block leading-none">
+                                OP {sp.sender_username.toUpperCase()}
                               </span>
-                              <span className="font-mono text-[10px] font-bold text-gray-900 uppercase tracking-tight block truncate">
+                              <span className="font-mono text-[9px] font-bold text-gray-900 uppercase block truncate">
                                 {sp.poll_title}
                               </span>
                             </div>
-                            <span className="font-mono text-[8px] bg-shonen-orange text-white px-1.5 py-0.5 font-black uppercase border border-black shrink-0">
+                            <span className="font-mono text-[7px] bg-shonen-orange text-white px-1 py-0.5 font-black uppercase shrink-0">
                               VIEW
                             </span>
                           </div>
@@ -550,173 +708,360 @@ export default function CombatCommsWidget({
                     )}
                   </div>
 
-                  <div className="h-px bg-gray-100" />
+                  <div className="h-px bg-gray-200" />
 
-                  {/* ACTIVE OPERATOR CHAT CHANNELS */}
-                  <div className="space-y-2 flex-1 flex flex-col min-h-0">
+                  {/* ACTIVE CHATS DIRECTORY */}
+                  <div className="space-y-1.5">
                     <div className="flex items-center gap-1.5">
                       <Users className="w-3.5 h-3.5 text-shonen-orange shrink-0" />
                       <span className="font-mono text-[9px] text-shonen-orange font-extrabold uppercase tracking-widest">
-                        ESTABLISHED TUNNEL CONNS ({mutualFollows.length})
+                        ESTABLISHED TUNNELS ({mutualFollows.length})
                       </span>
                     </div>
 
                     {mutualFollows.length === 0 ? (
-                      <div className="flex-1 flex flex-col justify-center items-center text-center p-4 border border-gray-200 bg-gray-50">
-                        <Users className="w-5 h-5 text-gray-400 mb-1" />
-                        <p className="font-mono text-[9px] text-gray-500 uppercase">
-                          NO ACTIVE MUTUAL CONNS FOUND.
+                      <div className="p-3 border border-gray-200 bg-white text-center">
+                        <p className="font-mono text-[9px] text-gray-500 uppercase font-black mb-1">
+                          NO ACTIVE CONNS
                         </p>
-                        <p className="font-mono text-[8px] text-gray-400 uppercase mt-1 leading-relaxed">
-                          ENGAGE SHARED INTERESTS: OPERATORS MUST MUTUALLY FOLLOW EACH OTHER TO ACTIVATE PRIVATE SECURE CHANNELS.
-                        </p>
-                      </div>
-                    ) : (
-                      <div className="space-y-1.5 overflow-y-auto flex-1 pr-1">
-                        {mutualFollows.map((friend) => (
-                          <div
-                            key={friend.id}
-                            onClick={() => {
-                              sounds.playSelect();
-                              setActiveChannel(friend);
-                            }}
-                            className="p-2.5 bg-gray-50 border border-gray-200 hover:border-shonen-orange transition-all cursor-pointer flex justify-between items-center rounded-none"
-                          >
-                            <div className="flex items-center gap-2.5 min-w-0">
-                              <div className="w-7 h-7 border border-black shrink-0 flex items-center justify-center overflow-hidden">
-                                {(() => {
-                                  const friendProfile = allProfiles?.find(p => p.id === friend.id);
-                                  const friendAvatarUrl = friendProfile?.avatar_url;
-                                  if (friendAvatarUrl) {
-                                    return <img src={friendAvatarUrl} alt={friend.username} className="w-full h-full object-cover" />;
-                                  }
-                                  return (
-                                    <div className="w-full h-full bg-shonen-orange text-white text-[10px] font-mono font-black flex items-center justify-center">
-                                      {friend.username.slice(0, 3).toUpperCase()}
-                                    </div>
-                                  );
-                                })()}
-                              </div>
-                              <div className="min-w-0">
-                                <span className="font-mono text-xs font-black text-gray-900 uppercase block leading-none mb-1">
-                                  {friend.username}
-                                </span>
-                                <span className="font-mono text-[8px] text-shonen-orange uppercase block leading-none">
-                                  ARENA-{friend.id.slice(0, 8).toUpperCase()}
-                                </span>
-                              </div>
-                            </div>
-                            <span className="font-mono text-[8px] text-shonen-orange border border-shonen-orange/30 px-1 py-0.5 bg-white uppercase tracking-wider font-bold shrink-0">
-                              CONNECT
-                            </span>
-                          </div>
-                        ))}
-                      </div>
-                    )}
-                  </div>
-
-                </div>
-              ) : (
-                /* 2. CHAT CONVERSATION FEED SCREEN */
-                <div className="flex-1 flex flex-col overflow-hidden justify-between">
-                  {/* Channel context header bar */}
-                  <div className="p-2 bg-gray-50 border-b border-gray-200 flex justify-between items-center">
-                    <button
-                      onClick={() => {
-                        sounds.playTick();
-                        setActiveChannel(null);
-                      }}
-                      className="font-mono text-[8px] text-shonen-orange border border-shonen-orange/30 px-1.5 py-0.5 bg-white hover:bg-shonen-orange hover:text-white uppercase tracking-widest font-black transition-all cursor-pointer"
-                    >
-                      [ BACK_TO_TUNNELS ]
-                    </button>
-                    <button
-                      onClick={() => {
-                        sounds.playSelect();
-                        onOpenProfile(activeChannel);
-                      }}
-                      className="font-mono text-[8px] text-black border border-black px-1.5 py-0.5 hover:bg-black hover:text-white uppercase tracking-widest font-black transition-all cursor-pointer"
-                    >
-                      VIEW DOSSIER
-                    </button>
-                  </div>
-
-                  {/* Messages logs */}
-                  <div className="flex-1 overflow-y-auto p-3.5 space-y-3.5 scrollbar-thin">
-                    {loadingMsgs ? (
-                      <div className="h-full flex justify-center items-center font-mono text-[10px] text-gray-400 uppercase animate-pulse">
-                        DECRYPTING CHASSIS TRANSMISSIONS...
-                      </div>
-                    ) : messages.length === 0 ? (
-                      <div className="h-full flex flex-col justify-center items-center text-center p-4">
-                        <Terminal className="w-5 h-5 text-gray-300 animate-spin mb-1.5" style={{ animationDuration: '6s' }} />
-                        <p className="font-mono text-[9px] text-gray-500 uppercase">
-                          SECURE END-TO-END FEED ESTABLISHED.
-                        </p>
-                        <p className="font-mono text-[8px] text-gray-400 uppercase mt-1">
-                          BEGIN SECURE DIRECT TRANSMISSIONS BELOW.
+                        <p className="font-mono text-[7.5px] text-gray-400 uppercase leading-relaxed">
+                          MUTUALLY FOLLOW OTHER OPERATORS TO INITIATE INSTANT CHANNELS!
                         </p>
                       </div>
                     ) : (
-                      messages.map((m) => {
-                        const isSelf = m.sender_id === currentUser.id;
-                        const senderProfile = allProfiles?.find(p => p.id === m.sender_id);
-                        const senderAvatarUrl = senderProfile?.avatar_url;
+                      <div className="space-y-1.5">
+                        {mutualFollows.map((friend) => {
+                          const isFriendSelected = activeChannel?.id === friend.id;
+                          const unreadCount = unreadCounts[friend.id] || 0;
 
-                        return (
-                          <div
-                            key={m.id}
-                            className={`flex gap-2.5 max-w-[90%] items-start ${isSelf ? 'ml-auto flex-row-reverse' : 'mr-auto flex-row'}`}
-                          >
-                            {/* Small message avatar bubble */}
-                            <div className="w-6 h-6 rounded-full border border-gray-300 bg-gray-100 shrink-0 flex items-center justify-center overflow-hidden mt-1 shadow-xs">
-                              {senderAvatarUrl ? (
-                                <img src={senderAvatarUrl} alt={m.sender_username} className="w-full h-full object-cover" />
+                          return (
+                            <div
+                              key={friend.id}
+                              onClick={() => {
+                                sounds.playSelect();
+                                setActiveChannel(friend);
+                              }}
+                              className={`p-2 border transition-all cursor-pointer flex justify-between items-center rounded-none relative overflow-hidden ${
+                                isFriendSelected
+                                  ? 'bg-shonen-orange/10 border-shonen-orange/75 shadow-xs'
+                                  : 'bg-white border-gray-200 hover:border-shonen-orange'
+                              }`}
+                            >
+                              {/* Left active border accent for selected channel */}
+                              {isFriendSelected && (
+                                <div className="absolute left-0 top-0 bottom-0 w-1 bg-shonen-orange" />
+                              )}
+
+                              <div className="flex items-center gap-2 min-w-0">
+                                <div className="w-7 h-7 rounded-full border border-black shrink-0 flex items-center justify-center overflow-hidden bg-gray-50">
+                                  {(() => {
+                                    const friendProfile = allProfiles?.find(p => p.id === friend.id);
+                                    const friendAvatarUrl = friendProfile?.avatar_url;
+                                    if (friendAvatarUrl) {
+                                      return <img src={friendAvatarUrl} alt={friend.username} className="w-full h-full object-cover" />;
+                                    }
+                                    return (
+                                      <div className="w-full h-full bg-gray-200 text-gray-700 text-[10px] font-mono font-black flex items-center justify-center">
+                                        {friend.username.slice(0, 2).toUpperCase()}
+                                      </div>
+                                    );
+                                  })()}
+                                </div>
+                                <div className="min-w-0">
+                                  <span className="font-mono text-xs font-black text-gray-900 uppercase block leading-none mb-1">
+                                    {friend.username}
+                                  </span>
+                                  <span className="font-mono text-[8px] text-gray-400 uppercase block leading-none truncate">
+                                    ARENA-{friend.id.slice(0, 8).toUpperCase()}
+                                  </span>
+                                </div>
+                              </div>
+
+                              {/* Unread Message count indicator badge */}
+                              {unreadCount > 0 ? (
+                                <span className="font-mono text-[8px] bg-red-600 text-white font-black px-1.5 py-0.5 rounded-full shrink-0 animate-pulse border border-white">
+                                  {unreadCount} NEW
+                                </span>
                               ) : (
-                                <span className="text-[8px] font-mono font-black text-gray-600">
-                                  {m.sender_username.slice(0, 2).toUpperCase()}
+                                <span className="font-mono text-[8px] text-gray-400 border border-gray-100 px-1 py-0.5 bg-gray-50 uppercase shrink-0">
+                                  CONN
                                 </span>
                               )}
                             </div>
-
-                            <div className={`flex flex-col ${isSelf ? 'items-end' : 'items-start'}`}>
-                              <span className="font-mono text-[7px] text-gray-400 uppercase mb-0.5">
-                                {isSelf ? 'YOU' : m.sender_username.toUpperCase()} // {new Date(m.created_at).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })}
-                              </span>
-                              <div className={`p-2.5 font-mono text-xs uppercase leading-relaxed rounded-none border ${
-                                isSelf 
-                                  ? 'bg-shonen-orange/10 border-shonen-orange/30 text-gray-950' 
-                                  : 'bg-gray-50 border-gray-200 text-gray-950'
-                              }`}>
-                                {m.text}
-                              </div>
-                            </div>
-                          </div>
-                        );
-                      })
+                          );
+                        })}
+                      </div>
                     )}
-                    <div ref={messagesEndRef} />
                   </div>
 
-                  {/* Chat Input port */}
-                  <form onSubmit={handleSendMessage} className="p-2.5 bg-gray-50 border-t border-gray-200 flex gap-2">
-                    <input
-                      type="text"
-                      value={msgInput}
-                      onChange={(e) => setMsgInput(e.target.value)}
-                      placeholder="ENTER TRANSMISSION PACKETS..."
-                      className="flex-1 bg-white border-2 border-gray-200 focus:border-shonen-orange px-2.5 py-2 font-mono text-xs focus:outline-none placeholder-gray-400 text-gray-950 uppercase"
-                    />
-                    <button
-                      type="submit"
-                      disabled={!msgInput.trim()}
-                      className="px-3.5 bg-shonen-orange hover:bg-black text-white border-2 border-black font-mono font-black uppercase text-xs transition-colors flex items-center justify-center shrink-0 cursor-pointer disabled:opacity-40"
-                    >
-                      <Send className="w-3.5 h-3.5" />
-                    </button>
-                  </form>
                 </div>
-              )}
+              </div>
+
+              {/* RIGHT COLUMN: THE CONVERSATION PANEL */}
+              <div 
+                className={`flex-1 flex flex-col h-full bg-white relative ${
+                  !activeChannel ? 'hidden md:flex' : 'flex'
+                }`}
+              >
+                {!activeChannel ? (
+                  /* PLACEHOLDER: NO CHAT LINK CHOSEN (Desktop only since mobile hides this block when no chat) */
+                  <div className="flex-1 flex flex-col justify-center items-center text-center p-8 bg-gray-50/40">
+                    <div className="w-16 h-16 rounded-full bg-shonen-orange/5 border-2 border-dashed border-shonen-orange/30 flex items-center justify-center mb-4">
+                      <MessageSquare className="w-8 h-8 text-shonen-orange/50 animate-bounce" style={{ animationDuration: '3s' }} />
+                    </div>
+                    <h4 className="font-mono text-sm font-black text-gray-900 uppercase tracking-wide">
+                      NEURAL TUNNEL OFFLINE
+                    </h4>
+                    <p className="font-mono text-[10px] text-gray-400 uppercase mt-2 max-w-[280px] leading-relaxed">
+                      Select an active mutually following operator link from the left inbox column to initiate instant secured signal transmissions.
+                    </p>
+                  </div>
+                ) : (
+                  /* ACTIVE DIRECT CHAT WINDOW */
+                  <div className="flex-1 flex flex-col h-full justify-between overflow-hidden">
+                    
+                    {/* Header Controls for Mobile and quick actions */}
+                    <div className="p-2.5 bg-gray-50 border-b border-gray-200 flex justify-between items-center shrink-0">
+                      <button
+                        onClick={() => {
+                          sounds.playTick();
+                          setActiveChannel(null);
+                        }}
+                        className="md:hidden font-mono text-[8px] text-shonen-orange border border-shonen-orange/30 px-2 py-1 bg-white hover:bg-shonen-orange hover:text-white uppercase tracking-widest font-black transition-all cursor-pointer"
+                      >
+                        [ BACK TO INBOX ]
+                      </button>
+                      
+                      <div className="hidden md:flex items-center gap-1.5">
+                        <div className="w-2.5 h-2.5 rounded-full bg-emerald-500 animate-pulse" />
+                        <span className="font-mono text-[8px] text-gray-500 uppercase font-black">
+                          TUNNEL ENCRYPTED // ACTIVE_FEED
+                        </span>
+                      </div>
+
+                      <button
+                        onClick={() => {
+                          sounds.playSelect();
+                          onOpenProfile(activeChannel);
+                        }}
+                        className="font-mono text-[8px] text-black border border-black px-2 py-1 bg-white hover:bg-black hover:text-white uppercase tracking-widest font-black transition-all cursor-pointer"
+                      >
+                        VIEW PROFILE
+                      </button>
+                    </div>
+
+                    {/* Messages Scroll Area */}
+                    <div className="flex-1 overflow-y-auto p-4 space-y-4 scrollbar-thin bg-white">
+                      {loadingMsgs ? (
+                        <div className="h-full flex justify-center items-center font-mono text-[10px] text-gray-400 uppercase animate-pulse">
+                          DECRYPTING CHASSIS TRANSMISSIONS...
+                        </div>
+                      ) : messages.length === 0 ? (
+                        <div className="h-full flex flex-col justify-center items-center text-center p-6">
+                          <Terminal className="w-6 h-6 text-shonen-orange animate-spin mb-2" style={{ animationDuration: '6s' }} />
+                          <p className="font-mono text-[9px] text-gray-500 uppercase font-bold">
+                            SECURE FEED ESTABLISHED WITH @{activeChannel.username.toUpperCase()}
+                          </p>
+                          <p className="font-mono text-[8px] text-gray-400 uppercase mt-1">
+                            Send text messages, animated GIFs, or expression stickers below.
+                          </p>
+                        </div>
+                      ) : (
+                        messages.map((m) => {
+                          const isSelf = m.sender_id === currentUser.id;
+                          const senderProfile = allProfiles?.find(p => p.id === m.sender_id);
+                          const senderAvatarUrl = senderProfile?.avatar_url;
+
+                          // Media detection
+                          const isGif = m.text.startsWith('[GIF]');
+                          const isSticker = m.text.startsWith('[STICKER]');
+                          const mediaUrl = (isGif || isSticker) ? m.text.split(' ').slice(1).join(' ') : null;
+
+                          return (
+                            <div
+                              key={m.id}
+                              className={`flex gap-2.5 max-w-[90%] items-start ${isSelf ? 'ml-auto flex-row-reverse' : 'mr-auto flex-row'}`}
+                            >
+                              {/* Avatar Bubble */}
+                              <div className="w-6.5 h-6.5 rounded-full border border-gray-300 bg-gray-100 shrink-0 flex items-center justify-center overflow-hidden mt-1 shadow-xs">
+                                {senderAvatarUrl ? (
+                                  <img src={senderAvatarUrl} alt={m.sender_username} className="w-full h-full object-cover" referrerPolicy="no-referrer" />
+                                ) : (
+                                  <span className="text-[8px] font-mono font-black text-gray-600">
+                                    {m.sender_username.slice(0, 2).toUpperCase()}
+                                  </span>
+                                )}
+                              </div>
+
+                              {/* Message bubble core */}
+                              <div className={`flex flex-col ${isSelf ? 'items-end' : 'items-start'}`}>
+                                <span className="font-mono text-[7px] text-gray-400 uppercase mb-0.5">
+                                  {isSelf ? 'YOU' : m.sender_username.toUpperCase()} // {new Date(m.created_at).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })}
+                                </span>
+                                
+                                {mediaUrl ? (
+                                  /* Image Media Rendering (GIFs & Stickers) */
+                                  isSticker ? (
+                                    <div className="p-1 max-w-[140px] bg-white border border-gray-200 hover:scale-105 transition-transform duration-200 relative shadow-xs">
+                                      <img 
+                                        src={mediaUrl} 
+                                        alt="Sticker Expression" 
+                                        referrerPolicy="no-referrer"
+                                        className="w-full h-auto object-contain"
+                                      />
+                                      <span className="absolute bottom-0 right-1 font-mono text-[5px] text-gray-300 uppercase select-none">
+                                        STICKER
+                                      </span>
+                                    </div>
+                                  ) : (
+                                    <div className="p-1 border-2 border-black max-w-[180px] bg-black/5 hover:scale-105 transition-transform duration-200 relative shadow-xs">
+                                      <img 
+                                        src={mediaUrl} 
+                                        alt="Anime GIF" 
+                                        referrerPolicy="no-referrer"
+                                        className="w-full h-auto object-cover"
+                                      />
+                                      <span className="absolute bottom-0.5 right-1 font-mono text-[5px] text-white/70 bg-black/50 px-1 uppercase select-none">
+                                        GIF_ANIME
+                                      </span>
+                                    </div>
+                                  )
+                                ) : (
+                                  /* Text Message Rendering */
+                                  <div className={`p-2.5 font-mono text-xs uppercase leading-relaxed rounded-none border ${
+                                    isSelf 
+                                      ? 'bg-shonen-orange/10 border-shonen-orange/35 text-gray-950' 
+                                      : 'bg-gray-50 border-gray-200 text-gray-950'
+                                  }`}>
+                                    {m.text}
+                                  </div>
+                                )}
+                              </div>
+                            </div>
+                          );
+                        })
+                      )}
+                      <div ref={messagesEndRef} />
+                    </div>
+
+                    {/* Sticker/GIF media drawer toggle content drawer */}
+                    <AnimatePresence>
+                      {showMediaDrawer && (
+                        <motion.div
+                          initial={{ height: 0, opacity: 0 }}
+                          animate={{ height: 'auto', opacity: 1 }}
+                          exit={{ height: 0, opacity: 0 }}
+                          className="bg-gray-50 border-t border-gray-200 flex flex-col shrink-0 overflow-hidden"
+                        >
+                          {/* Media drawer category buttons */}
+                          <div className="flex border-b border-gray-200">
+                            <button
+                              type="button"
+                              onClick={() => {
+                                sounds.playTick();
+                                setMediaTab('GIF');
+                              }}
+                              className={`flex-1 py-2 font-mono text-[9px] font-black uppercase text-center border-r border-gray-200 ${
+                                mediaTab === 'GIF' 
+                                  ? 'bg-shonen-orange text-white' 
+                                  : 'bg-gray-50 text-gray-500 hover:text-black'
+                              }`}
+                            >
+                              ⚡ ACTION ANIME GIFs
+                            </button>
+                            <button
+                              type="button"
+                              onClick={() => {
+                                sounds.playTick();
+                                setMediaTab('STICKER');
+                              }}
+                              className={`flex-1 py-2 font-mono text-[9px] font-black uppercase text-center ${
+                                mediaTab === 'STICKER' 
+                                  ? 'bg-shonen-orange text-white' 
+                                  : 'bg-gray-50 text-gray-500 hover:text-black'
+                              }`}
+                            >
+                              🌸 CHIBI EXPRESSIONS
+                            </button>
+                          </div>
+
+                          {/* Media grid list wrapper */}
+                          <div className="p-3 max-h-40 overflow-y-auto grid grid-cols-4 gap-2 bg-white">
+                            {mediaTab === 'GIF' ? (
+                              ACTION_GIFS.map((gif) => (
+                                <button
+                                  key={gif.name}
+                                  type="button"
+                                  onClick={() => handleSendMedia(gif.url, 'GIF')}
+                                  className="border border-gray-200 hover:border-shonen-orange p-1 hover:scale-105 transition-all bg-gray-50 flex flex-col justify-between h-20 overflow-hidden"
+                                >
+                                  <img src={gif.url} alt={gif.name} className="w-full h-12 object-cover" referrerPolicy="no-referrer" />
+                                  <span className="font-mono text-[5.5px] font-black text-gray-500 uppercase tracking-tighter truncate block w-full">
+                                    {gif.name}
+                                  </span>
+                                </button>
+                              ))
+                            ) : (
+                              CHIBI_STICKERS.map((stk) => (
+                                <button
+                                  key={stk.name}
+                                  type="button"
+                                  onClick={() => handleSendMedia(stk.url, 'STICKER')}
+                                  className="border border-gray-200 hover:border-shonen-orange p-1 hover:scale-105 transition-all bg-gray-50 flex flex-col justify-between h-20 overflow-hidden"
+                                >
+                                  <img src={stk.url} alt={stk.name} className="w-full h-12 object-contain" referrerPolicy="no-referrer" />
+                                  <span className="font-mono text-[5.5px] font-black text-gray-500 uppercase tracking-tighter truncate block w-full">
+                                    {stk.name}
+                                  </span>
+                                </button>
+                              ))
+                            )}
+                          </div>
+                        </motion.div>
+                      )}
+                    </AnimatePresence>
+
+                    {/* Chat Input form bar with GIF/Sticker toggle */}
+                    <form onSubmit={handleSendMessage} className="p-2.5 bg-gray-50 border-t border-gray-200 flex gap-2 shrink-0">
+                      
+                      {/* Toggle stickers panel button */}
+                      <button
+                        type="button"
+                        onClick={() => {
+                          sounds.playTick();
+                          setShowMediaDrawer(!showMediaDrawer);
+                        }}
+                        className={`px-3 border-2 border-black font-mono font-black uppercase text-[10px] transition-all flex items-center justify-center gap-1 cursor-pointer ${
+                          showMediaDrawer 
+                            ? 'bg-black text-white' 
+                            : 'bg-white hover:bg-gray-100 text-black'
+                        }`}
+                        title="TOGGLE STICKERS / GIFs"
+                      >
+                        <Smile className="w-4 h-4 text-shonen-orange shrink-0" />
+                        <span className="hidden sm:inline">GIF/STICKER</span>
+                      </button>
+
+                      <input
+                        type="text"
+                        value={msgInput}
+                        onChange={(e) => setMsgInput(e.target.value)}
+                        placeholder={showMediaDrawer ? "Select a sticker above or enter message..." : "ENTER TRANSMISSION PACKETS..."}
+                        className="flex-1 bg-white border-2 border-gray-200 focus:border-shonen-orange px-2.5 py-2 font-mono text-xs focus:outline-none placeholder-gray-400 text-gray-950 uppercase"
+                      />
+                      
+                      <button
+                        type="submit"
+                        disabled={!msgInput.trim()}
+                        className="px-4 bg-shonen-orange hover:bg-black text-white border-2 border-black font-mono font-black uppercase text-xs transition-colors flex items-center justify-center shrink-0 cursor-pointer disabled:opacity-40"
+                      >
+                        <Send className="w-3.5 h-3.5" />
+                      </button>
+                    </form>
+                  </div>
+                )}
+              </div>
+
             </div>
           </motion.div>
         )}
