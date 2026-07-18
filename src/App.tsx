@@ -232,10 +232,14 @@ export default function App() {
   useEffect(() => {
     fetchAllProfiles();
     fetchAllVotes();
+    fetchPolls();
+    fetchActivePolls();
     const interval = setInterval(() => {
       fetchAllProfiles();
       fetchAllVotes();
-    }, 12000);
+      fetchPolls();
+      fetchActivePolls();
+    }, 5000); // 5 seconds polling to ensure ultra-responsive real-time updates for all users on any server!
     return () => clearInterval(interval);
   }, []);
 
@@ -1393,6 +1397,7 @@ export default function App() {
 
   useEffect(() => {
     fetchPolls();
+    fetchActivePolls();
     setPolls(prev => applyVotesToPollsSync(prev));
   }, []);
 
