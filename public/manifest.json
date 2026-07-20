@@ -1,0 +1,17 @@
+{
+  "short_name": "Velgre",
+  "name": "Velgre - Real-Time Live Polling & Bracket Tournaments",
+  "description": "High-energy real-time live polling, custom brackets, classroom tournaments, and dynamic stories on Velgre.",
+  "icons": [
+    {
+      "src": "/favicon.svg",
+      "type": "image/svg+xml",
+      "sizes": "any"
+    }
+  ],
+  "start_url": "/",
+  "background_color": "#0d0e12",
+  "theme_color": "#0d0e12",
+  "display": "standalone",
+  "orientation": "portrait"
+}

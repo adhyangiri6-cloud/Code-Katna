@@ -1,0 +1,5 @@
+# robots.txt for Velgre
+User-agent: *
+Allow: /
+
+Sitemap: https://code-katna-p21t.vercel.app/sitemap.xml

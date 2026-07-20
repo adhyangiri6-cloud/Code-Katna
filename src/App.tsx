@@ -11,6 +11,7 @@ import ProfileSetupModal from './components/ProfileSetupModal';
 import OperatorProfileModal from './components/OperatorProfileModal';
 import ShareTransmitModal from './components/ShareTransmitModal';
 import CombatCommsWidget from './components/CombatCommsWidget';
+import { AboutFaqSection } from './components/AboutFaqSection';
 import { supabase } from './lib/supabaseClient';
 import { 
   Trophy, 
@@ -2387,7 +2388,7 @@ export default function App() {
               className="bg-white border-2 border-shonen-orange text-gray-900 font-mono text-[10px] md:text-xs font-black px-3 py-1.5 uppercase tracking-wide flex items-center gap-2 transition-all hover:bg-shonen-orange hover:text-white shadow-sm cursor-pointer"
             >
               {currentUser.avatar_url ? (
-                <img src={currentUser.avatar_url} alt="" className="w-5 h-5 rounded-full border border-black/10 object-cover shrink-0" />
+                <img src={currentUser.avatar_url} alt="Authorized operator profile avatar" className="w-5 h-5 rounded-full border border-black/10 object-cover shrink-0" />
               ) : (
                 <div className="w-2 h-2 bg-emerald-500 rounded-full animate-pulse shrink-0" />
               )}
@@ -2825,6 +2826,9 @@ export default function App() {
           </div>
         </div>
       </section>
+
+      {/* ABOUT & FAQ SECTION FOR DEEP GOOGLE SEARCH INDEXING & USER CLARITY */}
+      <AboutFaqSection onPlaySound={() => sounds.playTick()} />
 
       {/* FOOTER STATUS BAR (HIGH DENSITY THEME) */}
       <footer className="w-full bg-white border-t-2 border-gray-200 z-10 relative">

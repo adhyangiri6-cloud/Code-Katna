@@ -550,7 +550,7 @@ export default function LivePollingGrid({
                       <div className="flex items-center gap-1.5">
                         <span className="font-sans text-xs font-extrabold text-gray-900 tracking-tight uppercase hover:underline cursor-pointer flex items-center gap-1.5">
                           {hostAvatarUrl && (
-                            <img src={hostAvatarUrl} alt="" className="w-4 h-4 rounded-full object-cover border border-black/10 shrink-0" />
+                            <img src={hostAvatarUrl} alt={`${hostClean} mini avatar`} className="w-4 h-4 rounded-full object-cover border border-black/10 shrink-0" />
                           )}
                           {hostClean}
                         </span>
@@ -928,7 +928,7 @@ export default function LivePollingGrid({
                                                 return (
                                                   <img 
                                                     src={commenterAvatarUrl} 
-                                                    alt="" 
+                                                    alt={`${commentUserClean} mini avatar`} 
                                                     className="w-3.5 h-3.5 rounded-full object-cover border border-black/10 shrink-0" 
                                                   />
                                                 );
