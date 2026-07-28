@@ -64,9 +64,23 @@ export interface User {
   history: HistoryItem[];
   is_premium?: boolean;
   premium_expires_at?: string;
+  premium_status?: 'none' | 'pending' | 'approved' | 'cancelled';
   is_admin?: boolean;
   email?: string;
   avatar_url?: string;
+}
+
+export interface PremiumRequest {
+  id: string;
+  user_id: string;
+  username: string;
+  user_email: string;
+  item_type: 'PREMIUM_MEMBERSHIP' | 'SPOTLIGHT_PIN' | 'PRIORITY_BOOST';
+  utr_ref: string;
+  amount: string;
+  status: 'pending' | 'approved' | 'cancelled';
+  created_at: string;
+  target_email: string; // 'adhyangiri6@gmail.com'
 }
 
 export interface DbComment {

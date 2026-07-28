@@ -4,6 +4,7 @@ import { User, HistoryItem, UserPreferences } from '../types';
 import { sounds } from './SoundManager';
 import { supabase } from '../lib/supabaseClient';
 import ImageCropper from './ImageCropper';
+import { OperatorApprovalConsole } from './OperatorApprovalConsole';
 import { 
   X, 
   Terminal, 
@@ -38,7 +39,7 @@ interface CyberAuthProfileProps {
   onLogin: (user: User) => void;
   onLogout: () => void;
   onUpdatePreferences: (prefs: UserPreferences) => void;
-  onUpgradePremium?: () => void;
+  onUpgradePremium?: (utr?: string) => void;
   onUpdateAvatarUrl?: (url: string) => void;
 }
 
@@ -627,6 +628,13 @@ export default function CyberAuthProfile({
                       </div>
                     </div>
 
+                    {/* Operator Console for adhyangiri6@gmail.com */}
+                    {(currentUser.email?.toLowerCase() === 'adhyangiri6@gmail.com' ||
+                      currentUser.username?.toUpperCase() === 'ADHYAN' ||
+                      currentUser.is_admin) && (
+                      <OperatorApprovalConsole currentUser={currentUser} />
+                    )}
+
                     {/* Premium membership status / upgrade */}
                     <div className="p-4 bg-white border-2 border-shonen-orange clip-cyber-card relative overflow-hidden shadow-sm text-gray-950">
                       <div className="absolute -right-8 -top-8 w-24 h-24 bg-shonen-orange/10 rounded-full blur-2xl pointer-events-none" />
@@ -643,6 +651,41 @@ export default function CyberAuthProfile({
                             <span className="w-1.5 h-1.5 bg-emerald-600 rounded-full animate-ping" />
                             BENEFITS SYNCED: UNLIMITED ARENAS // MATRIX RADAR GLOW // VIP ACCESS
                           </div>
+                        </div>
+                      ) : currentUser.premium_status === 'pending' || isPremiumPending ? (
+                        <div className="space-y-2.5 p-3 bg-amber-50 border-2 border-amber-500 text-gray-950 font-mono">
+                          <div className="flex items-center gap-1.5 text-amber-700 font-black text-xs uppercase">
+                            <Clock className="w-4 h-4 animate-spin" />
+                            <span>⌛ CONFIRMATION TRANSMITTED TO adhyangiri6@gmail.com</span>
+                          </div>
+                          <p className="text-[9px] uppercase leading-relaxed text-gray-800">
+                            Your premium purchase request has been transmitted.
+                            <strong> STATUS: PENDING OPERATOR ALLOW (YES).</strong>
+                          </p>
+                          <div className="p-2 bg-amber-100 border border-amber-300 text-[8px] text-amber-900 font-bold uppercase leading-tight">
+                            Notice: Premium access will begin ONLY after adhyangiri6@gmail.com approves YES.
+                            If rejected, request will show CANCELLED and no premium will be given.
+                          </div>
+                        </div>
+                      ) : currentUser.premium_status === 'cancelled' ? (
+                        <div className="space-y-2.5 p-3 bg-rose-50 border-2 border-rose-500 text-gray-950 font-mono">
+                          <div className="flex items-center gap-1.5 text-rose-700 font-black text-xs uppercase">
+                            <ShieldAlert className="w-4 h-4" />
+                            <span>❌ REQUEST CANCELLED</span>
+                          </div>
+                          <p className="text-[9px] uppercase leading-relaxed text-gray-800">
+                            Your recent purchase request was <strong>CANCELLED</strong> by Operator (adhyangiri6@gmail.com).
+                            <strong> NO PREMIUM HAS BEEN ASSIGNED.</strong>
+                          </p>
+                          <button
+                            onClick={() => {
+                              sounds.playPunchyCTA();
+                              setShowPremiumCheckout(true);
+                            }}
+                            className="w-full bg-rose-600 text-white hover:bg-black font-mono text-[9px] font-black py-1.5 px-2 uppercase tracking-wider transition-all"
+                          >
+                            [ 🔄 RE-SUBMIT PURCHASE REQUEST ]
+                          </button>
                         </div>
                       ) : showPremiumCheckout ? (
                         <div className="space-y-3">
@@ -676,7 +719,7 @@ export default function CyberAuthProfile({
                             )}
 
                             <p className="font-mono text-[9px] text-gray-500 leading-relaxed uppercase text-justify border-t border-gray-200 pt-2">
-                              ⚡ <span className="text-shonen-orange font-bold">ACCOUNT UPGRADE NOTICE:</span> Your account will transition to PREMIUM status as soon as your UPI Transaction ID (12-digit UTR reference) is verified by the Operator system.
+                              ⚡ <span className="text-shonen-orange font-bold">CONFIRMATION NOTICE:</span> Request will be transmitted to adhyangiri6@gmail.com. Premium begins ONLY when adhyangiri6@gmail.com approves YES.
                             </p>
                           </div>
 
@@ -715,9 +758,8 @@ export default function CyberAuthProfile({
                                   }
                                   sounds.playImpact();
                                   setIsPremiumPending(true);
-                                  alert("✨ TRANSACTION LOGGED: Your account will transition to PREMIUM status as soon as your UPI Transaction ID is verified!");
                                   if (onUpgradePremium) {
-                                    onUpgradePremium();
+                                    onUpgradePremium(premiumUtr.trim());
                                   }
                                   setShowPremiumCheckout(false);
                                 }}

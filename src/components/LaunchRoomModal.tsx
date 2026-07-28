@@ -613,7 +613,7 @@ export default function LaunchRoomModal({ isOpen, onClose, onAddPoll, currentUse
                     sounds.playImpact();
                     setUtrRef(tempUtr.trim());
                     setIsPendingVerification(true);
-                    alert("✨ ROUTE LOGGED: Admin will verify your transaction shortly!");
+                    alert("📧 CONFIRMATION TRANSMITTED TO adhyangiri6@gmail.com!\n\nYour feature request is pending approval from adhyangiri6@gmail.com. If allowed YES, your arena feature will begin.");
                     setShowPaymentModal(false);
                   }}
                   className="flex-1 bg-shonen-orange text-white font-mono text-[10px] py-2 font-black hover:bg-black transition-colors"

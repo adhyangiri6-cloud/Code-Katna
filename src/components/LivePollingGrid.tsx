@@ -21,6 +21,7 @@ import {
   List,
   Bookmark,
   Share2,
+  Instagram,
   Sword,
   Shield,
   Zap
@@ -684,16 +685,28 @@ export default function LivePollingGrid({
 
                     {/* Transmit Poll airplane */}
                     {onTransmitPoll && (
-                      <button
-                        onClick={() => {
-                          sounds.playSelect();
-                          onTransmitPoll(poll);
-                        }}
-                        className="transition-transform hover:scale-110 text-gray-400 hover:text-shonen-orange cursor-pointer"
-                        title="Transmit / Share Stream"
-                      >
-                        <Send className="w-5.5 h-5.5 transform rotate-[-25deg] translate-y-[-1px]" />
-                      </button>
+                      <>
+                        <button
+                          onClick={() => {
+                            sounds.playSelect();
+                            onTransmitPoll(poll);
+                          }}
+                          className="transition-transform hover:scale-110 text-gray-400 hover:text-pink-600 cursor-pointer"
+                          title="Share to Instagram Stories"
+                        >
+                          <Instagram className="w-5.5 h-5.5" />
+                        </button>
+                        <button
+                          onClick={() => {
+                            sounds.playSelect();
+                            onTransmitPoll(poll);
+                          }}
+                          className="transition-transform hover:scale-110 text-gray-400 hover:text-shonen-orange cursor-pointer"
+                          title="Transmit / Share Stream"
+                        >
+                          <Send className="w-5.5 h-5.5 transform rotate-[-25deg] translate-y-[-1px]" />
+                        </button>
+                      </>
                     )}
                   </div>
 
