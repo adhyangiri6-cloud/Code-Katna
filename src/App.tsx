@@ -13,6 +13,21 @@ import ShareTransmitModal from './components/ShareTransmitModal';
 import CombatCommsWidget from './components/CombatCommsWidget';
 import { AboutFaqSection } from './components/AboutFaqSection';
 import { supabase } from './lib/supabaseClient';
+import {
+  hashToBigint,
+  savePollStats,
+  getAllPollStats,
+  getUserCastVotes,
+  saveUserCastVote,
+  removeUserCastVote,
+  syncVoteToSupabase,
+  removeVoteFromSupabase,
+  loadPersistedMatchups,
+  saveMatchupVote,
+  loadComments,
+  saveComment,
+  getPollLikes
+} from './lib/dataStorage';
 import { 
   Trophy, 
   Swords, 
@@ -1019,7 +1034,7 @@ export default function App() {
   };
 
   // Seed data for 1-vs-1 Tournament matchups
-  const [matchups, setMatchups] = useState<Matchup[]>([
+  const DEFAULT_MATCHUPS: Matchup[] = [
     {
       id: 'goku-saitama',
       title: 'BEST SHONEN PROTAGONIST MATCH',
@@ -1104,7 +1119,14 @@ export default function App() {
         avatarCode: 'アイ',
       }
     }
-  ]);
+  ];
+
+  const [matchups, setMatchups] = useState<Matchup[]>(() => loadPersistedMatchups(DEFAULT_MATCHUPS));
+
+  // Keep matchups state synced with user login changes
+  useEffect(() => {
+    setMatchups(loadPersistedMatchups(DEFAULT_MATCHUPS, currentUser?.id));
+  }, [currentUser?.id]);
 
   // Seed data for 3-card Polling Grid
   const [polls, setPolls] = useState<Poll[]>([
@@ -1190,44 +1212,36 @@ export default function App() {
   // Synchronous vote applicator based on loaded list
   const applyVotesToPollsSync = (loadedPolls: Poll[], currentUserId?: string) => {
     const uId = currentUserId || currentUser?.id || 'guest';
+    const userVotes = getUserCastVotes(uId);
+    const localStats = getAllPollStats();
+    const pollLikes = getPollLikes();
+
     const voteMap = new Map<string, number>();
-
-    // Load local storage votes
-    try {
-      const localVotesStored = localStorage.getItem(`vote_arena_cast_votes_${uId}`);
-      if (localVotesStored) {
-        const localVotes = JSON.parse(localVotesStored);
-        Object.entries(localVotes).forEach(([pId, optIndex]) => {
-          if (typeof optIndex === 'number') {
-            voteMap.set(pId, optIndex);
-          }
-        });
+    Object.entries(userVotes).forEach(([pId, optIndex]) => {
+      if (typeof optIndex === 'number') {
+        voteMap.set(pId, optIndex);
       }
-    } catch (localErr) {
-      console.warn('Could not fetch local storage votes:', localErr);
-    }
-
-    // Load local poll stats for seed / local-only polls
-    let localStats: Record<string, { options: any[]; totalVotes: number }> = {};
-    try {
-      const storedLocalStats = localStorage.getItem('vote_arena_local_poll_stats');
-      if (storedLocalStats) {
-        localStats = JSON.parse(storedLocalStats);
-      }
-    } catch (e) {}
+    });
 
     return loadedPolls.map(p => {
       let updatedPoll = { ...p };
 
-      // Overwrite options & totalVotes if it's a seed or local-only poll and has stored stats
-      const isSeedOrLocal = ['movie-2026', 'physics-11', 'community-adapt'].includes(p.id) || (!/^\d+$/.test(p.id) && !p.user_id);
-      if (isSeedOrLocal && localStats[p.id]) {
+      // Overwrite options & totalVotes for any poll that has persisted stats
+      if (localStats[p.id]) {
         updatedPoll.options = localStats[p.id].options;
         updatedPoll.totalVotes = localStats[p.id].totalVotes;
       }
 
+      if (pollLikes[p.id] !== undefined) {
+        const base = p.likes || (p.totalVotes > 0 ? Math.floor(p.totalVotes * 0.4) : 0);
+        updatedPoll.likes = base + pollLikes[p.id];
+      }
+
+      const numId = hashToBigint(p.id).toString();
       if (voteMap.has(p.id)) {
         updatedPoll.votedIndex = voteMap.get(p.id);
+      } else if (voteMap.has(numId)) {
+        updatedPoll.votedIndex = voteMap.get(numId);
       } else {
         // If the user hasn't voted on this poll, make sure votedIndex is undefined
         updatedPoll.votedIndex = undefined;
@@ -1239,6 +1253,7 @@ export default function App() {
 
   // ASYNC DB VOTE SYNCER: fetches user votes from DB and updates state & localStorage cache
   const syncDbVotes = async (currentUserId: string) => {
+    if (!currentUserId || currentUserId === 'guest') return;
     try {
       const { data: dbVotes, error } = await supabase
         .from('votes')
@@ -1251,28 +1266,15 @@ export default function App() {
       }
 
       if (dbVotes && dbVotes.length > 0) {
-        // Load existing local storage votes
-        let localVotes: Record<string, number> = {};
-        try {
-          const stored = localStorage.getItem(`vote_arena_cast_votes_${currentUserId}`);
-          if (stored) {
-            localVotes = JSON.parse(stored);
-          }
-        } catch (e) {}
-
-        // Overlay DB votes
         dbVotes.forEach((v: any) => {
           const optStr = v.selected_option || v.candidate_option;
           if (optStr !== undefined && optStr !== null) {
             const parsed = parseInt(optStr, 10);
             if (!isNaN(parsed)) {
-              localVotes[v.tournament_id] = parsed;
+              saveUserCastVote(currentUserId, v.tournament_id.toString(), parsed);
             }
           }
         });
-
-        // Save updated map to local storage
-        localStorage.setItem(`vote_arena_cast_votes_${currentUserId}`, JSON.stringify(localVotes));
 
         // Update state consistently with local stats and votes
         setPolls(prev => applyVotesToPollsSync(prev, currentUserId));
@@ -1370,73 +1372,8 @@ export default function App() {
   };
 
   const fetchActivePolls = async () => {
-    // This fetches ALL polls, regardless of status or filters
-    const { data, error } = await supabase
-      .from('shared_polls')
-      .select('*'); 
-
-    if (error) {
-      console.error("FETCH ERROR:", error);
-    } else {
-      console.log("POLLS LOADED:", data); // Check your console F12 to see if they are here
-      if (data) {
-        const mapped: Poll[] = data.map((p: any) => {
-          const rawOptions = p.options || [];
-          const formattedOptions = rawOptions.map((opt: any) => {
-            if (typeof opt === 'string') {
-              return { text: opt, votes: 0 };
-            }
-            return { text: opt?.text || '', votes: opt?.votes || 0 };
-          });
-
-          return {
-            id: p.id,
-            title: p.question || p.title || '',
-            category: p.category || 'ARENA',
-            description: p.description || '',
-            totalVotes: p.total_votes || p.totalVotes || 0,
-            options: formattedOptions,
-            votedIndex: p.voted_index !== undefined ? p.voted_index : p.votedIndex,
-            hostName: p.host_name || p.hostName || 'GATEKEEPER',
-            is_priority: p.is_priority || false,
-            is_spotlight: p.is_featured || p.is_spotlight || false,
-            is_pending_verification: p.is_pending_verification || false,
-            verification_utr: p.verification_utr || '',
-            created_at: p.created_at,
-            expires_at: p.expires_at,
-            user_id: p.user_id,
-            comments_enabled: p.comments_enabled || false
-          };
-        });
-        
-        setPolls(prev => {
-          const prevMap = new Map<string, Poll>();
-          prev.forEach(p => prevMap.set(p.id, p));
-
-          const mergedList = prev.map(p => {
-            const sharedPoll = mapped.find(sp => sp.id === p.id);
-            if (sharedPoll) {
-              return {
-                ...p,
-                is_spotlight: p.is_spotlight || sharedPoll.is_spotlight
-              };
-            }
-            return p;
-          });
-
-          const newSharedPolls = mapped.filter(sp => !prevMap.has(sp.id));
-          const combined = [...mergedList, ...newSharedPolls];
-
-          const finalSeen = new Set<string>();
-          const merged = combined.filter(p => {
-            if (finalSeen.has(p.id)) return false;
-            finalSeen.add(p.id);
-            return true;
-          });
-          return applyVotesToPollsSync(merged);
-        });
-      }
-    }
+    // Refresh polls safely with persistent votes and stats
+    await fetchPolls();
   };
 
   useEffect(() => {
@@ -1473,32 +1410,27 @@ export default function App() {
     }
 
     // Check 2: Local storage check
-    const uId = currentUser.id;
-    let localVotes: Record<string, number> = {};
-    try {
-      const stored = localStorage.getItem(`vote_arena_cast_votes_${uId}`);
-      if (stored) {
-        localVotes = JSON.parse(stored);
-      }
-    } catch (e) {}
+    const uId = currentUser.id || 'guest';
+    const localVotes = getUserCastVotes(uId);
+    const numId = hashToBigint(pollId).toString();
 
-    if (localVotes[pollId] !== undefined) {
+    if (localVotes[pollId] !== undefined || localVotes[numId] !== undefined) {
       sounds.playError();
       alert("ALREADY VOTED // You have already cast a vote on this poll. Please undo your previous vote if you wish to change it.");
       return;
     }
 
     // Check 3: Database votes cache check
-    const dbVoteExists = (allVotes || []).some(v => v.user_id === currentUser.id && v.tournament_id === pollId);
+    const dbVoteExists = (allVotes || []).some(
+      v => v.user_id === currentUser.id && (v.tournament_id === pollId || v.tournament_id?.toString() === numId)
+    );
     if (dbVoteExists) {
       sounds.playError();
       alert("ALREADY VOTED // You have already cast a vote on this poll. Please undo your previous vote if you wish to change it.");
       return;
     }
 
-    const selectedOptionText = targetPoll.options[optionIndex]?.text || '';
-
-    // Optimistically update the option's vote in standard polls table first
+    // Optimistically update the option's vote
     const updatedOptions = [...targetPoll.options];
     updatedOptions[optionIndex] = {
       ...updatedOptions[optionIndex],
@@ -1506,42 +1438,17 @@ export default function App() {
     };
     const totalVotes = (targetPoll.totalVotes || 0) + 1;
 
-    // Update standard polls table first
-    try {
-      await supabase
-        .from('polls')
-        .update({
-          options: updatedOptions,
-          total_votes: totalVotes
-        })
-        .eq('id', pollId);
-    } catch (e) {
-      console.warn("Aggregate polls sync warning:", e);
-    }
+    // 1. Save poll stats permanently in unified storage
+    savePollStats(pollId, updatedOptions, totalVotes);
 
-    // We are including candidate_option AND tournament_id AND selected_option
-    // to satisfy every single constraint at once and upsert gracefully.
-    try {
-      const { error } = await supabase
-        .from('votes')
-        .upsert(
-          { 
-            user_id: currentUser.id, 
-            tournament_id: pollId, 
-            candidate_option: optionIndex.toString(),
-            selected_option: optionIndex.toString()
-          },
-          { onConflict: 'user_id, tournament_id' }
-        );
+    // 2. Save user cast vote permanently
+    saveUserCastVote(uId, pollId, optionIndex);
+    saveUserCastVote(uId, numId, optionIndex);
 
-      if (error) {
-        console.warn("Database vote registration skipped due to foreign key or schema constraints (falling back to local session state):", error.message);
-      }
-    } catch (dbErr) {
-      console.warn("Database vote registration exception (falling back to local session state):", dbErr);
-    }
+    // 3. Sync to Supabase votes table asynchronously
+    syncVoteToSupabase(currentUser.id, pollId, optionIndex);
 
-    // Update local state immediately to show the new vote tally
+    // 4. Update local React state immediately
     setPolls(prev => prev.map(p => {
       if (p.id !== pollId) return p;
       return {
@@ -1552,61 +1459,25 @@ export default function App() {
       };
     }));
 
-    // Save local poll stats for seed and local-only polls to survive refresh
-    try {
-      const storedLocalStats = localStorage.getItem('vote_arena_local_poll_stats');
-      const localStats = storedLocalStats ? JSON.parse(storedLocalStats) : {};
-      localStats[pollId] = {
-        options: updatedOptions,
-        totalVotes: totalVotes
-      };
-      localStorage.setItem('vote_arena_local_poll_stats', JSON.stringify(localStats));
-    } catch (e) {
-      console.warn("Could not save local poll stats to localStorage:", e);
-    }
-
-    // Synchronize user vote cast status locally under user specific storage to prevent duplicate voting
-    try {
-      const uId = currentUser?.id || 'guest';
-      const storedCast = localStorage.getItem(`vote_arena_cast_votes_${uId}`);
-      const castVotes = storedCast ? JSON.parse(storedCast) : {};
-      castVotes[pollId] = optionIndex;
-      localStorage.setItem(`vote_arena_cast_votes_${uId}`, JSON.stringify(castVotes));
-    } catch (e) {
-      console.warn("Could not save cast vote status to localStorage:", e);
-    }
-
-    // Synchronize vote to localStorage hosted fallback copy
+    // 5. Synchronize to hosted polls fallback
     try {
       const stored = localStorage.getItem('vote_arena_hosted_polls');
       if (stored) {
         const localPolls = JSON.parse(stored);
         const updated = localPolls.map((p: any) => {
           if (p.id !== pollId) return p;
-          const uOptions = [...p.options];
-          if (uOptions[optionIndex]) {
-            uOptions[optionIndex] = {
-              ...uOptions[optionIndex],
-              votes: (uOptions[optionIndex].votes || 0) + 1
-            };
-          }
           return {
             ...p,
-            options: uOptions,
-            totalVotes: (p.totalVotes || 0) + 1,
+            options: updatedOptions,
+            totalVotes,
             votedIndex: optionIndex
           };
         });
         localStorage.setItem('vote_arena_hosted_polls', JSON.stringify(updated));
       }
-    } catch (e) {
-      console.warn("Could not save updated vote to localStorage:", e);
-    }
-
-    try {
-      fetchActivePolls(); 
-      fetchPolls();
     } catch (e) {}
+
+    fetchAllVotes();
     alert("SUCCESS // Vote anchored to the grid.");
   };
 
@@ -1630,85 +1501,20 @@ export default function App() {
       };
     }
     const totalVotes = Math.max(0, (targetPoll.totalVotes || 0) - 1);
+    const uId = currentUser.id || 'guest';
+    const numId = hashToBigint(pollId).toString();
 
-    try {
-      await supabase
-        .from('polls')
-        .update({
-          options: updatedOptions,
-          total_votes: totalVotes
-        })
-        .eq('id', pollId);
-    } catch (e) {
-      console.warn("Aggregate polls sync warning on undo:", e);
-    }
+    // 1. Persist updated poll stats
+    savePollStats(pollId, updatedOptions, totalVotes);
 
-    try {
-      const { error } = await supabase
-        .from('votes')
-        .delete()
-        .eq('user_id', currentUser.id)
-        .eq('tournament_id', pollId);
+    // 2. Remove user cast vote locally
+    removeUserCastVote(uId, pollId);
+    removeUserCastVote(uId, numId);
 
-      if (error) {
-        console.warn("Database vote retraction skipped:", error.message);
-      }
-    } catch (dbErr) {
-      console.warn("Database vote retraction exception:", dbErr);
-    }
+    // 3. Remove vote from Supabase
+    removeVoteFromSupabase(currentUser.id, pollId);
 
-    try {
-      const uId = currentUser?.id || 'guest';
-      const storedCast = localStorage.getItem(`vote_arena_cast_votes_${uId}`);
-      if (storedCast) {
-        const castVotes = JSON.parse(storedCast);
-        delete castVotes[pollId];
-        localStorage.setItem(`vote_arena_cast_votes_${uId}`, JSON.stringify(castVotes));
-      }
-    } catch (e) {
-      console.warn("Could not remove cast vote status from localStorage:", e);
-    }
-
-    try {
-      const stored = localStorage.getItem('vote_arena_hosted_polls');
-      if (stored) {
-        const localPolls = JSON.parse(stored);
-        const updated = localPolls.map((p: any) => {
-          if (p.id !== pollId) return p;
-          const uOptions = [...p.options];
-          if (uOptions[optionIndex]) {
-            uOptions[optionIndex] = {
-              ...uOptions[optionIndex],
-              votes: Math.max(0, (uOptions[optionIndex].votes || 0) - 1)
-            };
-          }
-          return {
-            ...p,
-            options: uOptions,
-            totalVotes: Math.max(0, (p.totalVotes || 0) - 1),
-            votedIndex: undefined
-          };
-        });
-        localStorage.setItem('vote_arena_hosted_polls', JSON.stringify(updated));
-      }
-    } catch (e) {
-      console.warn("Could not update local copy on undo:", e);
-    }
-
-    try {
-      const storedLocalStats = localStorage.getItem('vote_arena_local_poll_stats');
-      if (storedLocalStats) {
-        const localStats = JSON.parse(storedLocalStats);
-        if (localStats[pollId]) {
-          localStats[pollId] = {
-            options: updatedOptions,
-            totalVotes: totalVotes
-          };
-          localStorage.setItem('vote_arena_local_poll_stats', JSON.stringify(localStats));
-        }
-      }
-    } catch (e) {}
-
+    // 4. Update React state
     setPolls(prev => prev.map(p => {
       if (p.id !== pollId) return p;
       return {
@@ -1719,11 +1525,25 @@ export default function App() {
       };
     }));
 
+    // 5. Update local hosted polls copy
     try {
-      fetchActivePolls(); 
-      fetchPolls();
-      fetchAllVotes();
+      const stored = localStorage.getItem('vote_arena_hosted_polls');
+      if (stored) {
+        const localPolls = JSON.parse(stored);
+        const updated = localPolls.map((p: any) => {
+          if (p.id !== pollId) return p;
+          return {
+            ...p,
+            options: updatedOptions,
+            totalVotes,
+            votedIndex: undefined
+          };
+        });
+        localStorage.setItem('vote_arena_hosted_polls', JSON.stringify(updated));
+      }
     } catch (e) {}
+
+    fetchAllVotes();
     alert("SUCCESS // Vote retracted from the grid.");
   };
 
@@ -1771,8 +1591,17 @@ export default function App() {
     }
   };
 
-  const [comments, setComments] = useState<DbComment[]>([]);
+  const [comments, setComments] = useState<DbComment[]>(() => loadComments());
   const [follows, setFollows] = useState<DbFollow[]>([]);
+
+  // Keep comments in sync reactively across tabs and components
+  useEffect(() => {
+    const handleCommentsUpdate = () => {
+      setComments(loadComments());
+    };
+    window.addEventListener('vote-arena-comments-updated', handleCommentsUpdate);
+    return () => window.removeEventListener('vote-arena-comments-updated', handleCommentsUpdate);
+  }, []);
 
   // Load local or remote follows & comments
   useEffect(() => {
@@ -1810,40 +1639,8 @@ export default function App() {
         if (localFollows) setFollows(JSON.parse(localFollows));
       }
 
-      // 2. Fetch Comments
-      try {
-        const { data: dbComments, error } = await supabase
-          .from('comments')
-          .select('*')
-          .order('created_at', { ascending: true });
-        if (!error && dbComments && dbComments.length > 0) {
-          const uniqueDbComments: DbComment[] = [];
-          const seen = new Set<string>();
-          for (const c of dbComments) {
-            if (!seen.has(c.id)) {
-              seen.add(c.id);
-              uniqueDbComments.push(c);
-            }
-          }
-          setComments(uniqueDbComments);
-        } else {
-          const localComments = safeLocalStorage.getItem('vote_arena_comments');
-          if (localComments) {
-            setComments(JSON.parse(localComments));
-          } else {
-            const initialComments: DbComment[] = [
-              { id: 'c-seed-1', poll_id: 'movie-2026', user_id: 'ARENA_MOD_X', text: 'NEO TOKYO RECON IS REVOLUTIONARY!', created_at: new Date(Date.now() - 3600000).toISOString(), username: 'ARENA_MOD_X', avatar: 'MOD' },
-              { id: 'c-seed-2', poll_id: 'movie-2026', user_id: 'SENSEI_TANAKA', text: 'NIGHT CITY CHRONICLES HAS EXCELLENT WORLD-BUILDING.', created_at: new Date(Date.now() - 1800000).toISOString(), username: 'SENSEI_TANAKA', avatar: 'SEN' },
-              { id: 'c-seed-3', poll_id: 'physics-11', user_id: 'COMMUNITY_CORE', text: 'THE EM-FIELD COUPLING THEORY HAS EMPIRICAL HOLES.', created_at: new Date(Date.now() - 500000).toISOString(), username: 'COMMUNITY_CORE', avatar: 'COR' }
-            ];
-            setComments(initialComments);
-            safeLocalStorage.setItem('vote_arena_comments', JSON.stringify(initialComments));
-          }
-        }
-      } catch (err) {
-        const localComments = safeLocalStorage.getItem('vote_arena_comments');
-        if (localComments) setComments(JSON.parse(localComments));
-      }
+      // 2. Load Comments safely from unified storage
+      setComments(loadComments());
     };
 
     fetchFollowsAndComments();
@@ -1933,7 +1730,7 @@ export default function App() {
     }
     const userId = currentUser.id || 'guest';
     const newComment: DbComment = {
-      id: `c-${Date.now()}`,
+      id: `c-${Date.now()}-${Math.random().toString(36).substring(2, 6)}`,
       poll_id: pollId,
       user_id: userId,
       text: text.trim(),
@@ -1942,51 +1739,19 @@ export default function App() {
       avatar: currentUser.avatar
     };
 
-    setComments(prev => {
-      if (prev.some(c => c.id === newComment.id)) return prev;
-      const updated = [...prev, newComment];
-      safeLocalStorage.setItem('vote_arena_comments', JSON.stringify(updated));
-      return updated;
-    });
+    const updated = saveComment(newComment);
+    setComments(updated);
     sounds.playPunchyCTA();
     addHistoryItem('TRANSMITTED COMMENT', `Posted comment on arena stream ID: ${pollId}.`);
-
-    try {
-      await supabase
-        .from('comments')
-        .insert([
-          {
-            id: newComment.id,
-            poll_id: pollId,
-            user_id: userId,
-            text: newComment.text,
-            created_at: newComment.created_at,
-            username: newComment.username,
-            avatar: newComment.avatar
-          }
-        ]);
-    } catch (err) {
-      console.warn("Supabase insert for comments failed, synchronized locally.");
-    }
   };
 
   // Handle Spotlight Matchup Vote Injection
   const handleSpotlightVote = (matchupId: string, choice: 'A' | 'B') => {
-    setMatchups(prev => prev.map(m => {
-      if (m.id !== matchupId) return m;
-      
-      const updatedMatch = { ...m, hasVoted: choice };
-      const chosenContestant = choice === 'A' ? m.contestantA.name : m.contestantB.name;
-      if (choice === 'A') {
-        updatedMatch.contestantA = { ...m.contestantA, votes: m.contestantA.votes + 1 };
-      } else {
-        updatedMatch.contestantB = { ...m.contestantB, votes: m.contestantB.votes + 1 };
-      }
-      updatedMatch.totalVotes = updatedMatch.contestantA.votes + updatedMatch.contestantB.votes;
-
-      addHistoryItem('MATCHUP VOTE', `Cast bracket vote for ${chosenContestant} in matchup "${m.title}".`);
-      return updatedMatch;
-    }));
+    sounds.playImpact();
+    setMatchups(prev => saveMatchupVote(matchupId, choice, prev, currentUser?.id));
+    const targetMatch = matchups.find(m => m.id === matchupId);
+    const chosenContestant = choice === 'A' ? targetMatch?.contestantA.name : targetMatch?.contestantB.name;
+    addHistoryItem('MATCHUP VOTE', `Cast bracket vote for ${chosenContestant || choice} in matchup "${targetMatch?.title || matchupId}".`);
   };
 
   // Handle Live Poll Vote Submission
@@ -2077,7 +1842,8 @@ export default function App() {
       });
     });
 
-    // Also store in localStorage as a high-reliability fallback to survive refreshes under any subnet state
+    // Also store in localStorage and unified stats as a high-reliability fallback to survive refreshes
+    savePollStats(newPoll.id, newPoll.options, newPoll.totalVotes || 0);
     try {
       const stored = localStorage.getItem('vote_arena_hosted_polls');
       const localPolls = stored ? JSON.parse(stored) : [];

@@ -238,7 +238,7 @@ export default function CyberAuthProfile({
         // we use a synthetic user profile so they can access their arena instantly.
         if (!userToUse) {
           userToUse = {
-            id: 'admin-adhyan-bypass-id',
+            id: 'ad705b5d-ab95-4219-b2d3-ad05fe67024f',
             email: targetEmail,
             created_at: new Date().toISOString(),
             email_confirmed_at: new Date().toISOString(),

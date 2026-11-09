@@ -2,6 +2,7 @@ import React, { useState, useEffect, useRef } from 'react';
 import { motion, AnimatePresence } from 'motion/react';
 import { supabase } from '../lib/supabaseClient';
 import { sounds } from './SoundManager';
+import { loadCommsMessages, saveCommsMessage } from '../lib/dataStorage';
 import { 
   MessageSquare, Send, X, Terminal, Users, User, Radio, Sparkles, Zap, Check, Trash2, Smile, Image, Film, MessageCircle
 } from 'lucide-react';
@@ -254,18 +255,27 @@ export default function CombatCommsWidget({
   const fetchInbox = async () => {
     if (!currentUser) return;
     try {
-      const localMsgs = JSON.parse(localStorage.getItem('vote_arena_messages') || '[]');
+      const localMsgs = loadCommsMessages();
 
-      const { data, error } = await supabase
-        .from('messages')
-        .select('*')
-        .or(`sender_id.eq.${currentUser.id},receiver_id.eq.${currentUser.id}`)
-        .order('created_at', { ascending: true });
+      let dbMsgs: any[] = [];
+      const isUuid = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i.test(currentUser.id || '');
+      if (isUuid) {
+        try {
+          const { data, error } = await supabase
+            .from('messages')
+            .select('*')
+            .or(`sender_id.eq.${currentUser.id},receiver_id.eq.${currentUser.id}`)
+            .order('created_at', { ascending: true });
 
-      let combined = [...localMsgs];
-      if (!error && data) {
-        combined = [...combined, ...data];
+          if (!error && data) {
+            dbMsgs = data;
+          }
+        } catch (e) {
+          console.warn("Supabase messages query error (handled):", e);
+        }
       }
+
+      let combined = [...localMsgs, ...dbMsgs];
 
       // Deduplicate by ID
       const unique = combined.filter((item, index, self) =>
@@ -325,8 +335,14 @@ export default function CombatCommsWidget({
       fetchInbox();
     }, 3000);
 
+    const handleMsgEvent = () => {
+      fetchInbox();
+    };
+    window.addEventListener('vote-arena-messages-updated', handleMsgEvent);
+
     return () => {
       if (pollIntervalRef.current) clearInterval(pollIntervalRef.current);
+      window.removeEventListener('vote-arena-messages-updated', handleMsgEvent);
     };
   }, [currentUser?.id]);
 
@@ -556,7 +572,6 @@ export default function CombatCommsWidget({
           .filter((mId: string) => mId !== currentUser.id)
           .map(async (mId: string) => {
             const dbMsg = {
-              id: `m-${Date.now()}-${Math.random().toString(36).substr(2, 5)}`,
               sender_id: currentUser.id,
               receiver_id: mId,
               text: `[GC_MSG] ${gcPayload}`,
@@ -566,17 +581,11 @@ export default function CombatCommsWidget({
           });
 
         await Promise.all(promises);
-
-        const localMsgs = JSON.parse(localStorage.getItem('vote_arena_messages') || '[]');
-        localMsgs.push(tempMsg);
-        localStorage.setItem('vote_arena_messages', JSON.stringify(localMsgs));
-
-        fetchInbox();
       } catch (e) {
-        const localMsgs = JSON.parse(localStorage.getItem('vote_arena_messages') || '[]');
-        localMsgs.push(tempMsg);
-        localStorage.setItem('vote_arena_messages', JSON.stringify(localMsgs));
+        // Fallback gracefully
       }
+      saveCommsMessage(tempMsg);
+      fetchInbox();
     } else {
       const friendId = activeChannel.id;
       const newMsg: Message = {
@@ -596,17 +605,11 @@ export default function CombatCommsWidget({
           const { sender_username, ...dbPayload } = newMsg;
           await supabase.from('messages').insert([dbPayload]);
         }
-
-        const localMsgs = JSON.parse(localStorage.getItem('vote_arena_messages') || '[]');
-        localMsgs.push(newMsg);
-        localStorage.setItem('vote_arena_messages', JSON.stringify(localMsgs));
-
-        fetchInbox();
       } catch (e) {
-        const localMsgs = JSON.parse(localStorage.getItem('vote_arena_messages') || '[]');
-        localMsgs.push(newMsg);
-        localStorage.setItem('vote_arena_messages', JSON.stringify(localMsgs));
+        // Fallback gracefully
       }
+      saveCommsMessage(newMsg);
+      fetchInbox();
     }
   };
 
@@ -648,7 +651,6 @@ export default function CombatCommsWidget({
           .filter((mId: string) => mId !== currentUser.id)
           .map(async (mId: string) => {
             const dbMsg = {
-              id: `m-${Date.now()}-${Math.random().toString(36).substr(2, 5)}`,
               sender_id: currentUser.id,
               receiver_id: mId,
               text: `[GC_MSG] ${gcPayload}`,
@@ -658,17 +660,11 @@ export default function CombatCommsWidget({
           });
 
         await Promise.all(promises);
-
-        const localMsgs = JSON.parse(localStorage.getItem('vote_arena_messages') || '[]');
-        localMsgs.push(tempMsg);
-        localStorage.setItem('vote_arena_messages', JSON.stringify(localMsgs));
-
-        fetchInbox();
       } catch (e) {
-        const localMsgs = JSON.parse(localStorage.getItem('vote_arena_messages') || '[]');
-        localMsgs.push(tempMsg);
-        localStorage.setItem('vote_arena_messages', JSON.stringify(localMsgs));
+        // Fallback gracefully
       }
+      saveCommsMessage(tempMsg);
+      fetchInbox();
     } else {
       const friendId = activeChannel.id;
       const newMsg: Message = {
@@ -689,17 +685,11 @@ export default function CombatCommsWidget({
           const { sender_username, ...dbPayload } = newMsg;
           await supabase.from('messages').insert([dbPayload]);
         }
-
-        const localMsgs = JSON.parse(localStorage.getItem('vote_arena_messages') || '[]');
-        localMsgs.push(newMsg);
-        localStorage.setItem('vote_arena_messages', JSON.stringify(localMsgs));
-
-        fetchInbox();
       } catch (e) {
-        const localMsgs = JSON.parse(localStorage.getItem('vote_arena_messages') || '[]');
-        localMsgs.push(newMsg);
-        localStorage.setItem('vote_arena_messages', JSON.stringify(localMsgs));
+        // Fallback gracefully
       }
+      saveCommsMessage(newMsg);
+      fetchInbox();
     }
   };
 

@@ -2,6 +2,7 @@ import React, { useState, useEffect } from 'react';
 import { motion, AnimatePresence } from 'motion/react';
 import { Poll, DbComment, DbFollow } from '../types';
 import { sounds } from './SoundManager';
+import { getPollLikes, getUserLikedPolls, togglePollLike } from '../lib/dataStorage';
 import { 
   Radio, 
   Users, 
@@ -202,63 +203,37 @@ export default function LivePollingGrid({
   // Track input text per poll ID
   const [commentInputs, setCommentInputs] = useState<Record<string, string>>({});
 
-  // Local likes tracking to simulate double-tap or tap fires on posts
+  // Unified Persistent Likes Tracking across sessions and reloads
   const [likedPolls, setLikedPolls] = useState<Record<string, boolean>>(() => {
-    try {
-      const uId = currentUser?.id || 'guest';
-      const stored = localStorage.getItem(`vote_arena_liked_polls_${uId}`);
-      return stored ? JSON.parse(stored) : {};
-    } catch {
-      return {};
-    }
+    const uId = currentUser?.id || 'guest';
+    return getUserLikedPolls(uId);
   });
 
-  const [extraLikes, setExtraLikes] = useState<Record<string, number>>(() => {
-    try {
-      const uId = currentUser?.id || 'guest';
-      const stored = localStorage.getItem(`vote_arena_extra_likes_${uId}`);
-      return stored ? JSON.parse(stored) : {};
-    } catch {
-      return {};
-    }
+  const [pollLikes, setPollLikes] = useState<Record<string, number>>(() => {
+    return getPollLikes();
   });
 
-  // Keep likes synced across logins/refreshes
+  // Keep likes synced across logins/refreshes and cross-tab/component updates
   useEffect(() => {
-    try {
-      const uId = currentUser?.id || 'guest';
-      const storedLiked = localStorage.getItem(`vote_arena_liked_polls_${uId}`);
-      setLikedPolls(storedLiked ? JSON.parse(storedLiked) : {});
-      
-      const storedExtra = localStorage.getItem(`vote_arena_extra_likes_${uId}`);
-      setExtraLikes(storedExtra ? JSON.parse(storedExtra) : {});
-    } catch (e) {
-      console.warn("Failed to load liked state", e);
-    }
+    const uId = currentUser?.id || 'guest';
+    setLikedPolls(getUserLikedPolls(uId));
+    setPollLikes(getPollLikes());
+
+    const handleLikesUpdated = () => {
+      setPollLikes(getPollLikes());
+      setLikedPolls(getUserLikedPolls(currentUser?.id || 'guest'));
+    };
+
+    window.addEventListener('vote-arena-likes-updated', handleLikesUpdated);
+    return () => window.removeEventListener('vote-arena-likes-updated', handleLikesUpdated);
   }, [currentUser?.id]);
 
   const handleLike = (pollId: string) => {
     sounds.playSelect();
-    const isLiked = likedPolls[pollId];
-    const newLiked = !isLiked;
-    
-    setLikedPolls(prev => {
-      const updated = { ...prev, [pollId]: newLiked };
-      const uId = currentUser?.id || 'guest';
-      localStorage.setItem(`vote_arena_liked_polls_${uId}`, JSON.stringify(updated));
-      return updated;
-    });
-
-    setExtraLikes(prev => {
-      const diff = newLiked ? 1 : -1;
-      const updated = {
-        ...prev,
-        [pollId]: (prev[pollId] || 0) + diff
-      };
-      const uId = currentUser?.id || 'guest';
-      localStorage.setItem(`vote_arena_extra_likes_${uId}`, JSON.stringify(updated));
-      return updated;
-    });
+    const uId = currentUser?.id || 'guest';
+    const { isLiked, totalLikes } = togglePollLike(pollId, uId);
+    setLikedPolls(prev => ({ ...prev, [pollId]: isLiked }));
+    setPollLikes(prev => ({ ...prev, [pollId]: totalLikes }));
   };
 
   const getCategoryIcon = (category: string) => {
@@ -404,7 +379,9 @@ export default function LivePollingGrid({
           {polls.map((poll, idx) => {
             const hasVoted = poll.votedIndex !== undefined;
             const optionTotal = poll.options.reduce((sum, o) => sum + o.votes, 0);
-            const totalVotes = poll.totalVotes + (extraLikes[poll.id] || 0);
+            const totalVotes = poll.totalVotes;
+            const baseLikes = poll.likes || (poll.totalVotes > 0 ? Math.floor(poll.totalVotes * 0.4) : 0);
+            const totalLikes = baseLikes + (pollLikes[poll.id] || 0);
             const pollComments = comments.filter(c => c.poll_id === poll.id);
             const animeConfig = getAnimeThemeConfig(poll.hostName || 'GATEKEEPER');
 
@@ -469,12 +446,16 @@ export default function LivePollingGrid({
 
                 {/* Real Instagram Hover Statistics Overlay */}
                 <div className="absolute inset-0 bg-black/80 flex items-center justify-center gap-4 opacity-0 group-hover:opacity-100 transition-opacity duration-300 z-20">
-                  <div className="flex items-center gap-1 text-shonen-orange font-mono font-bold text-sm">
-                    <Flame className="w-5 h-5 text-shonen-orange animate-pulse" />
+                  <div className="flex items-center gap-1 text-shonen-orange font-mono font-bold text-sm" title={`${totalLikes} Combat Likes`}>
+                    <Flame className="w-5 h-5 text-shonen-orange animate-pulse fill-shonen-orange" />
+                    <span>{totalLikes}</span>
+                  </div>
+                  <div className="flex items-center gap-1 text-shonen-blue font-mono font-bold text-sm" title={`${totalVotes} Total Votes`}>
+                    <Users className="w-5 h-5 text-shonen-blue" />
                     <span>{totalVotes}</span>
                   </div>
-                  <div className="flex items-center gap-1 text-shonen-blue font-mono font-bold text-sm">
-                    <MessageSquare className="w-5 h-5 text-shonen-blue" />
+                  <div className="flex items-center gap-1 text-emerald-400 font-mono font-bold text-sm" title={`${pollComments.length} Comments`}>
+                    <MessageSquare className="w-5 h-5 text-emerald-400" />
                     <span>{pollComments.length}</span>
                   </div>
                 </div>
@@ -491,7 +472,8 @@ export default function LivePollingGrid({
             const isBoosted = poll.is_priority === true;
             const commentsOpen = !!activeComments[poll.id];
             const animeConfig = getAnimeThemeConfig(poll.hostName || 'GATEKEEPER');
-            const totalLikes = poll.totalVotes + (extraLikes[poll.id] || 0);
+            const baseLikes = poll.likes || (poll.totalVotes > 0 ? Math.floor(poll.totalVotes * 0.4) : 0);
+            const totalLikes = baseLikes + (pollLikes[poll.id] || 0);
 
             // De-duplicate comments
             const seenCommentIds = new Set<string>();
@@ -664,12 +646,13 @@ export default function LivePollingGrid({
                     {/* Double-tap fire hype button */}
                     <button
                       onClick={() => handleLike(poll.id)}
-                      className={`transition-transform hover:scale-110 active:scale-95 cursor-pointer flex items-center gap-1 ${
+                      className={`transition-transform hover:scale-110 active:scale-95 cursor-pointer flex items-center gap-1.5 ${
                         isLiked ? 'text-shonen-orange' : 'text-gray-400 hover:text-shonen-orange'
                       }`}
-                      title="Double Hype (Like)"
+                      title={isLiked ? "Unlike Arena" : "Double Hype (Like Arena)"}
                     >
-                      <Flame className={`w-6 h-6 ${isLiked ? 'fill-shonen-orange animate-bounce' : ''}`} />
+                      <Flame className={`w-6 h-6 ${isLiked ? 'fill-shonen-orange animate-bounce text-shonen-orange' : ''}`} />
+                      <span className="font-mono text-xs font-black">{totalLikes}</span>
                     </button>
 
                     {/* Comments Toggle Balloon */}
@@ -730,9 +713,16 @@ export default function LivePollingGrid({
                 {/* 4. Captions, Statistics, and Inline Interactive Options */}
                 <div className="px-4 pb-4 space-y-4 pt-2">
                   {/* Likes / Votes statistics */}
-                  <div className="font-sans text-xs font-extrabold text-gray-900 uppercase tracking-tight flex items-center gap-2">
-                    <Users className="w-4 h-4 text-shonen-orange" />
-                    <span>{totalLikes.toLocaleString()} COMBAT HEARTS / STREAMED VOTES</span>
+                  <div className="font-sans text-xs font-extrabold text-gray-900 uppercase tracking-tight flex items-center gap-3">
+                    <span className="flex items-center gap-1.5 text-shonen-orange font-mono">
+                      <Flame className="w-4 h-4 fill-shonen-orange text-shonen-orange" />
+                      <span>{totalLikes.toLocaleString()} LIKES</span>
+                    </span>
+                    <span className="text-gray-300 font-bold">&bull;</span>
+                    <span className="flex items-center gap-1.5 text-gray-700 font-mono">
+                      <Users className="w-4 h-4 text-shonen-blue" />
+                      <span>{poll.totalVotes.toLocaleString()} VOTES</span>
+                    </span>
                   </div>
 
                   {/* Caption */}

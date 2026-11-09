@@ -39,6 +39,7 @@ export interface Poll {
   user_id?: string;
   comments_enabled?: boolean;
   expires_at?: string;
+  likes?: number;
 }
 
 export interface HistoryItem {
