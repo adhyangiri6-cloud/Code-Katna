@@ -1,8 +1,25 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useRef } from 'react';
 import { motion, AnimatePresence } from 'motion/react';
 import { Poll, PollOption, User } from '../types';
 import { sounds } from './SoundManager';
-import { X, Plus, Trash2, Send, Terminal, AlertTriangle, Sparkles, Flame } from 'lucide-react';
+import { saveCustomPost } from '../lib/dataStorage';
+import { 
+  X, 
+  Plus, 
+  Trash2, 
+  Send, 
+  Terminal, 
+  AlertTriangle, 
+  Sparkles, 
+  Flame, 
+  Image as ImageIcon, 
+  Video as VideoIcon, 
+  Swords, 
+  ShieldCheck, 
+  Lock,
+  Camera,
+  Play
+} from 'lucide-react';
 
 const memoryStorage: Record<string, string> = {};
 const safeLocalStorage = {
@@ -32,6 +49,18 @@ const safeLocalStorage = {
   }
 };
 
+const PHOTO_PRESETS = [
+  { name: '🔥 GOKU ULTRA INSTINCT', url: 'https://images.unsplash.com/photo-1578632767115-351597cf2477?w=800&auto=format&fit=crop&q=80' },
+  { name: '🌸 SAKURA TEMPLE', url: 'https://images.unsplash.com/photo-1528164344705-475426879c0d?w=800&auto=format&fit=crop&q=80' },
+  { name: '⚡ NEON SHIBUYA', url: 'https://images.unsplash.com/photo-1503899036084-c55cdd92da26?w=800&auto=format&fit=crop&q=80' },
+  { name: '🌆 CYBERPUNK TOKYO', url: 'https://images.unsplash.com/photo-1542051841857-5f90071e7989?w=800&auto=format&fit=crop&q=80' }
+];
+
+const VIDEO_PRESETS = [
+  { name: '🎬 ANIME BATTLE SEQUENCE', url: 'https://commondatastorage.googleapis.com/gtv-videos-bucket/sample/ForBiggerBlazes.mp4' },
+  { name: '⚡ CYBERNETIC CLASH SPARK', url: 'https://commondatastorage.googleapis.com/gtv-videos-bucket/sample/ElephantsDream.mp4' }
+];
+
 interface LaunchRoomModalProps {
   isOpen: boolean;
   onClose: () => void;
@@ -41,11 +70,14 @@ interface LaunchRoomModalProps {
 }
 
 export default function LaunchRoomModal({ isOpen, onClose, onAddPoll, currentUser, polls }: LaunchRoomModalProps) {
+  const [postType, setPostType] = useState<'POLL' | 'PHOTO' | 'VIDEO'>('POLL');
   const [title, setTitle] = useState('');
   const [category, setCategory] = useState<'POP-CULTURE' | 'CLASSROOM' | 'TOURNAMENT'>('POP-CULTURE');
   const [description, setDescription] = useState('');
   const [hostName, setHostName] = useState('');
   const [options, setOptions] = useState<string[]>(['', '']);
+  const [mediaUrl, setMediaUrl] = useState('');
+  const [guidelinesAccepted, setGuidelinesAccepted] = useState(false);
   const [errors, setErrors] = useState<string | null>(null);
   const [isPriority, setIsPriority] = useState(false);
   const [isSpotlight, setIsSpotlight] = useState(false);
@@ -58,6 +90,7 @@ export default function LaunchRoomModal({ isOpen, onClose, onAddPoll, currentUse
   const [commentsEnabled, setCommentsEnabled] = useState(true);
   const [todayCount, setTodayCount] = useState(0);
 
+  const fileInputRef = useRef<HTMLInputElement>(null);
   const isPremium = currentUser?.is_premium === true;
 
   // STRICT EQUALITIES CHECK: Ensure UPI payment layout is routed for ANY transaction value > 0
@@ -66,7 +99,6 @@ export default function LaunchRoomModal({ isOpen, onClose, onAddPoll, currentUse
       setPaymentAmount(amount);
       setShowPaymentModal(true);
     } else {
-      // PREMIUM_BYPASS or Free tier
       setUtrRef('PREMIUM_BYPASS');
       setIsPendingVerification(false);
     }
@@ -121,22 +153,59 @@ export default function LaunchRoomModal({ isOpen, onClose, onAddPoll, currentUse
     setOptions(updated);
   };
 
+  const handleFileUpload = (e: React.ChangeEvent<HTMLInputElement>) => {
+    const file = e.target.files?.[0];
+    if (!file) return;
+
+    if (file.size > 15 * 1024 * 1024) {
+      sounds.playError();
+      setErrors('MEDIA FILE EXCEEDS 15MB LIMIT.');
+      return;
+    }
+
+    const reader = new FileReader();
+    reader.onloadend = () => {
+      setMediaUrl(reader.result as string);
+      sounds.playTick();
+    };
+    reader.readAsDataURL(file);
+  };
+
   const handleSubmit = (e: React.FormEvent) => {
     e.preventDefault();
     setErrors(null);
 
-    // Validation
-    if (!title.trim()) {
-      setErrors('ARENA NAME OR POLL TITLE REQUIRED.');
+    // Safety Covenant Check
+    if (!guidelinesAccepted) {
+      setErrors('YOU MUST FORMALLY ACCEPT THE COMMUNITY SAFETY COVENANT (NO NUDITY / NO HARMFUL CONTENT) BEFORE TRANSMITTING.');
       sounds.playError();
       return;
     }
 
-    const filteredOptions = options.map(o => o.trim()).filter(o => o !== '');
-    if (filteredOptions.length < 2) {
-      setErrors('A MINIMUM OF TWO COMPETING ENTRIES REQUIRED.');
+    // Media validation if photo or video
+    if (postType !== 'POLL' && !mediaUrl.trim()) {
+      setErrors('MEDIA URL OR ATTACHMENT IS REQUIRED FOR PHOTO/VIDEO TRANSMISSIONS.');
       sounds.playError();
       return;
+    }
+
+    // Validation
+    if (!title.trim()) {
+      setErrors('ARENA NAME OR TRANSMISSION TITLE REQUIRED.');
+      sounds.playError();
+      return;
+    }
+
+    // If options are empty for media posts, provide default anime reactions
+    let filteredOptions = options.map(o => o.trim()).filter(o => o !== '');
+    if (filteredOptions.length < 2) {
+      if (postType !== 'POLL') {
+        filteredOptions = ['🌸 10/10 MASTERPIECE', '⚡ HYPE / GOATED'];
+      } else {
+        setErrors('A MINIMUM OF TWO COMPETING ENTRIES REQUIRED.');
+        sounds.playError();
+        return;
+      }
     }
 
     // Limit Validation
@@ -175,10 +244,10 @@ export default function LaunchRoomModal({ isOpen, onClose, onAddPoll, currentUse
       id: String(Date.now()),
       title: title.trim(),
       category,
-      description: description.trim() || 'Custom transmission registered on main link.',
+      description: description.trim() || (postType === 'PHOTO' ? 'Visual anime media transmission.' : postType === 'VIDEO' ? 'High-motion anime clash video.' : 'Custom interactive poll registered on main link.'),
       totalVotes: 0,
       options: filteredOptions.map(opt => ({ text: opt, votes: 0 })),
-      hostName: hostName.trim() || 'GATEKEEPER_ID_X',
+      hostName: hostName.trim() || currentUser?.username || 'ANIME_OPERATOR',
       is_priority: isPriority,
       is_spotlight: isSpotlight,
       is_pending_verification: isPendingVerification,
@@ -186,9 +255,15 @@ export default function LaunchRoomModal({ isOpen, onClose, onAddPoll, currentUse
       comments_enabled: commentsEnabled,
       created_at: new Date().toISOString(),
       expires_at: expiresAt.toISOString(),
-      user_id: currentUser?.id || undefined
+      user_id: currentUser?.id || undefined,
+      media_type: postType === 'PHOTO' ? 'IMAGE' : postType === 'VIDEO' ? 'VIDEO' : 'NONE',
+      media_url: mediaUrl.trim() || undefined,
+      guidelines_accepted: true,
+      author_avatar: currentUser?.avatar_url || currentUser?.avatar
     };
 
+    // Save permanently to storage
+    saveCustomPost(newPoll);
     onAddPoll(newPoll);
     
     // Increment count
@@ -200,6 +275,8 @@ export default function LaunchRoomModal({ isOpen, onClose, onAddPoll, currentUse
     setDescription('');
     setHostName('');
     setOptions(['', '']);
+    setMediaUrl('');
+    setGuidelinesAccepted(false);
     setIsPriority(false);
     setIsSpotlight(false);
     setUtrRef('');
@@ -212,7 +289,7 @@ export default function LaunchRoomModal({ isOpen, onClose, onAddPoll, currentUse
   return (
     <AnimatePresence>
       {isOpen && (
-        <div className="fixed inset-0 z-50 overflow-y-auto flex items-start md:items-center justify-center p-4">
+        <div className="fixed inset-0 z-50 overflow-y-auto flex items-start md:items-center justify-center p-3 sm:p-4">
           {/* Backdrop */}
           <motion.div
             initial={{ opacity: 0 }}
@@ -222,22 +299,21 @@ export default function LaunchRoomModal({ isOpen, onClose, onAddPoll, currentUse
               sounds.playTick();
               onClose();
             }}
-            className="absolute inset-0 bg-black/60 backdrop-blur-sm fixed"
+            className="fixed inset-0 bg-black/75 backdrop-blur-sm"
           />
 
           {/* CRT scanlines inside modal */}
-          <div className="absolute inset-0 scanlines opacity-[0.03] pointer-events-none z-50 fixed" />
+          <div className="fixed inset-0 scanlines opacity-[0.03] pointer-events-none z-50" />
 
           {/* Modal Container */}
           <motion.div
-            initial={{ scale: 0.9, y: 50, opacity: 0 }}
+            initial={{ scale: 0.92, y: 30, opacity: 0 }}
             animate={{ scale: 1, y: 0, opacity: 1 }}
-            exit={{ scale: 0.9, y: 50, opacity: 0 }}
-            transition={{ type: 'spring', duration: 0.5, bounce: 0.2 }}
-            className="relative w-full max-w-lg my-auto bg-white border-4 border-black p-6 md:p-8 clip-cyber-card z-50 shadow-lg text-gray-950 scrollbar-thin max-h-none md:max-h-[90vh] md:overflow-y-auto"
+            exit={{ scale: 0.92, y: 30, opacity: 0 }}
+            className="relative w-full max-w-xl bg-white border-4 border-black p-5 sm:p-8 clip-cyber-card my-8 z-50 shadow-2xl text-gray-950"
           >
-            {/* Caution Hatching Border at the top */}
-            <div className="absolute top-0 left-0 right-0 h-2 bg-[linear-gradient(45deg,#FF6B00_25%,#fff_25%,#fff_50%,#FF6B00_50%,#FF6B00_75%,#fff_75%,#fff)] bg-[size:16px_16px]" />
+            {/* Caution Line at Top */}
+            <div className="absolute top-0 left-0 right-0 h-2 bg-gradient-to-r from-pink-500 via-rose-500 to-amber-500" />
 
             {/* Close Button */}
             <button
@@ -245,20 +321,65 @@ export default function LaunchRoomModal({ isOpen, onClose, onAddPoll, currentUse
                 sounds.playTick();
                 onClose();
               }}
-              className="absolute top-4 right-4 text-gray-400 hover:text-shonen-orange border-2 border-transparent hover:border-shonen-orange/30 p-1.5 transition-all"
+              className="absolute top-4 right-4 text-gray-400 hover:text-black border-2 border-transparent hover:border-black p-1.5 transition-all cursor-pointer"
             >
               <X className="w-5 h-5" />
             </button>
 
             {/* Modal Title */}
-            <div className="mb-6">
-              <div className="inline-flex items-center gap-1.5 font-mono text-shonen-orange text-xs font-black mb-1">
+            <div className="mb-4">
+              <div className="inline-flex items-center gap-1.5 font-mono text-pink-600 text-xs font-black mb-1 bg-pink-50 border border-pink-200 px-2 py-0.5">
                 <Terminal className="w-3.5 h-3.5" />
                 SYSTEM_ACCESS // OPEN_ARENA_STREAM
               </div>
-              <h2 className="text-2xl md:text-3xl font-black text-gray-950 uppercase tracking-tighter">
-                LAUNCH <span className="text-shonen-orange">POLLING CHAMBER</span>
+              <h2 className="text-2xl sm:text-3xl font-black text-gray-950 uppercase tracking-tighter">
+                TRANSMIT <span className="text-transparent bg-clip-text bg-gradient-to-r from-pink-600 to-amber-600">PHOTO, VIDEO OR POLL</span>
               </h2>
+            </div>
+
+            {/* POST TYPE SWITCHER (POLL vs PHOTO vs VIDEO) */}
+            <div className="flex border-2 border-black bg-gray-100 p-1 mb-4 gap-1">
+              <button
+                type="button"
+                onClick={() => {
+                  sounds.playTick();
+                  setPostType('POLL');
+                }}
+                className={`flex-1 py-2 font-mono text-xs font-black uppercase tracking-wider transition-all flex items-center justify-center gap-1.5 cursor-pointer ${
+                  postType === 'POLL' ? 'bg-black text-white shadow-xs' : 'text-gray-600 hover:text-black'
+                }`}
+              >
+                <Swords className="w-3.5 h-3.5" />
+                <span>⚔️ CLASH POLL</span>
+              </button>
+
+              <button
+                type="button"
+                onClick={() => {
+                  sounds.playTick();
+                  setPostType('PHOTO');
+                }}
+                className={`flex-1 py-2 font-mono text-xs font-black uppercase tracking-wider transition-all flex items-center justify-center gap-1.5 cursor-pointer ${
+                  postType === 'PHOTO' ? 'bg-gradient-to-r from-pink-600 to-rose-500 text-white shadow-xs' : 'text-gray-600 hover:text-black'
+                }`}
+              >
+                <ImageIcon className="w-3.5 h-3.5" />
+                <span>📸 PHOTO POST</span>
+              </button>
+
+              <button
+                type="button"
+                onClick={() => {
+                  sounds.playTick();
+                  setPostType('VIDEO');
+                }}
+                className={`flex-1 py-2 font-mono text-xs font-black uppercase tracking-wider transition-all flex items-center justify-center gap-1.5 cursor-pointer ${
+                  postType === 'VIDEO' ? 'bg-gradient-to-r from-amber-500 to-orange-600 text-white shadow-xs' : 'text-gray-600 hover:text-black'
+                }`}
+              >
+                <VideoIcon className="w-3.5 h-3.5" />
+                <span>🎬 VIDEO POST</span>
+              </button>
             </div>
 
             {/* Errors */}
@@ -266,20 +387,103 @@ export default function LaunchRoomModal({ isOpen, onClose, onAddPoll, currentUse
               <motion.div
                 initial={{ opacity: 0, x: -10 }}
                 animate={{ opacity: 1, x: 0 }}
-                className="mb-4 bg-shonen-orange/10 border-2 border-shonen-orange p-3.5 font-mono text-xs text-shonen-orange flex items-start gap-2"
+                className="mb-4 bg-rose-50 border-2 border-rose-500 p-3.5 font-mono text-xs text-rose-900 flex items-start gap-2"
               >
-                <AlertTriangle className="w-4 h-4 flex-shrink-0 mt-0.5" />
+                <AlertTriangle className="w-4 h-4 flex-shrink-0 mt-0.5 text-rose-600" />
                 <div>
-                  <span className="font-extrabold">TRANSMISSION ERROR:</span> {errors}
+                  <span className="font-extrabold">TRANSMISSION REQUISITION:</span> {errors}
                 </div>
               </motion.div>
             )}
 
             {/* Form */}
             <form onSubmit={handleSubmit} className="space-y-4">
+              {/* PHOTO / VIDEO MEDIA INPUT SECTION */}
+              {postType !== 'POLL' && (
+                <div className="bg-pink-50/70 border-2 border-black p-4 space-y-3">
+                  <div className="flex items-center justify-between">
+                    <span className="font-mono text-[10px] font-black uppercase tracking-wider text-pink-900 flex items-center gap-1.5">
+                      {postType === 'PHOTO' ? <ImageIcon className="w-4 h-4 text-pink-600" /> : <VideoIcon className="w-4 h-4 text-amber-600" />}
+                      {postType === 'PHOTO' ? 'IMAGE SOURCE / FILE UPLOAD' : 'VIDEO STREAM URL / CLIP'}
+                    </span>
+                    <button
+                      type="button"
+                      onClick={() => fileInputRef.current?.click()}
+                      className="px-2.5 py-1 bg-white border border-black font-mono text-[9px] font-black uppercase hover:bg-black hover:text-white transition-all cursor-pointer flex items-center gap-1"
+                    >
+                      <Camera className="w-3 h-3" />
+                      <span>UPLOAD FILE</span>
+                    </button>
+                  </div>
+
+                  <input
+                    type="file"
+                    ref={fileInputRef}
+                    onChange={handleFileUpload}
+                    accept={postType === 'PHOTO' ? 'image/*' : 'video/*'}
+                    className="hidden"
+                  />
+
+                  <div className="flex gap-2">
+                    <input
+                      type="text"
+                      value={mediaUrl}
+                      onChange={(e) => setMediaUrl(e.target.value)}
+                      placeholder={postType === 'PHOTO' ? 'PASTE IMAGE URL (PNG, JPG, WEBP, GIF)...' : 'PASTE VIDEO URL (MP4, WEBM, CLIPS)...'}
+                      className="flex-1 bg-white border-2 border-black px-3 py-2 font-mono text-xs text-gray-950 focus:outline-none focus:ring-2 focus:ring-pink-500"
+                    />
+                    {mediaUrl && (
+                      <button
+                        type="button"
+                        onClick={() => setMediaUrl('')}
+                        className="px-2 py-1 bg-gray-200 border border-black text-gray-700 text-xs font-mono font-bold hover:bg-rose-500 hover:text-white transition-all"
+                      >
+                        CLEAR
+                      </button>
+                    )}
+                  </div>
+
+                  {/* Preset Quick Selectors */}
+                  <div className="space-y-1">
+                    <span className="font-mono text-[8px] text-gray-500 uppercase font-bold">
+                      QUICK ANIME ASSET PRESETS:
+                    </span>
+                    <div className="flex flex-wrap gap-1.5">
+                      {(postType === 'PHOTO' ? PHOTO_PRESETS : VIDEO_PRESETS).map((p, idx) => (
+                        <button
+                          key={idx}
+                          type="button"
+                          onClick={() => {
+                            sounds.playSelect();
+                            setMediaUrl(p.url);
+                          }}
+                          className="bg-white hover:bg-pink-100 text-gray-800 border border-black px-2 py-0.5 font-mono text-[9px] font-bold uppercase transition-all cursor-pointer"
+                        >
+                          {p.name}
+                        </button>
+                      ))}
+                    </div>
+                  </div>
+
+                  {/* Media Preview Box */}
+                  {mediaUrl && (
+                    <div className="mt-2 border-2 border-black bg-black rounded-none overflow-hidden max-h-48 flex items-center justify-center relative">
+                      {postType === 'PHOTO' ? (
+                        <img src={mediaUrl} alt="Preview" className="max-h-48 w-full object-contain" />
+                      ) : (
+                        <video src={mediaUrl} controls className="max-h-48 w-full object-contain" />
+                      )}
+                      <span className="absolute top-1 right-1 bg-black/80 text-white text-[8px] font-mono px-1.5 py-0.5 border border-white/20 uppercase">
+                        PREVIEW READY
+                      </span>
+                    </div>
+                  )}
+                </div>
+              )}
+
               {/* Category Selector */}
               <div>
-                <label className="block text-[10px] font-mono text-gray-500 uppercase font-black mb-2 tracking-widest">
+                <label className="block text-[10px] font-mono text-gray-500 uppercase font-black mb-1.5 tracking-widest">
                   STREAM_TYPE / CATEGORY
                 </label>
                 <div className="grid grid-cols-3 gap-2">
@@ -291,10 +495,10 @@ export default function LaunchRoomModal({ isOpen, onClose, onAddPoll, currentUse
                         sounds.playTick();
                         setCategory(cat);
                       }}
-                      className={`font-mono text-[10px] font-bold py-2 border-2 transition-all duration-200 clip-diagonal-reverse ${
+                      className={`font-mono text-[10px] font-bold py-2 border-2 transition-all duration-200 ${
                         category === cat
-                          ? 'bg-shonen-orange border-shonen-orange text-white shadow-sm'
-                          : 'bg-white border-gray-200 text-gray-500 hover:border-shonen-orange'
+                          ? 'bg-shonen-orange border-black text-white shadow-xs'
+                          : 'bg-white border-gray-200 text-gray-500 hover:border-black'
                       }`}
                     >
                       {cat}
@@ -306,14 +510,14 @@ export default function LaunchRoomModal({ isOpen, onClose, onAddPoll, currentUse
               {/* Title input */}
               <div>
                 <label className="block text-[10px] font-mono text-gray-500 uppercase font-black mb-1.5 tracking-widest">
-                  POLL TOPIC OR BRACKET ROUNDS
+                  {postType === 'POLL' ? 'POLL TOPIC OR BRACKET ROUND' : 'POST CAPTION / TITLE'}
                 </label>
                 <input
                   type="text"
                   value={title}
                   onChange={(e) => setTitle(e.target.value)}
-                  placeholder="e.g. BEST MECHA ANIME OF ALL TIME"
-                  className="w-full bg-white border-2 border-gray-200 hover:border-gray-300 focus:border-shonen-orange px-4 py-2.5 font-mono text-xs text-gray-950 placeholder-gray-400 focus:outline-none transition-all clip-cyber-card-sm"
+                  placeholder={postType === 'POLL' ? 'e.g. BEST MECHA ANIME OF ALL TIME' : 'e.g. S-TIER CINEMATOGRAPHY IN THIS EPISODE 🔥'}
+                  className="w-full bg-white border-2 border-gray-200 hover:border-gray-300 focus:border-black px-4 py-2 font-mono text-xs text-gray-950 placeholder-gray-400 focus:outline-none transition-all"
                 />
               </div>
 
@@ -327,184 +531,70 @@ export default function LaunchRoomModal({ isOpen, onClose, onAddPoll, currentUse
                     type="text"
                     value={hostName}
                     onChange={(e) => setHostName(e.target.value)}
-                    placeholder="e.g. SENSEI_A"
-                    className="w-full bg-white border-2 border-gray-200 hover:border-gray-300 focus:border-shonen-orange px-4 py-2.5 font-mono text-xs text-gray-950 placeholder-gray-400 focus:outline-none transition-all clip-cyber-card-sm"
+                    placeholder={currentUser?.username || 'ANIME_OPERATOR'}
+                    className="w-full bg-white border-2 border-gray-200 hover:border-gray-300 focus:border-black px-4 py-2 font-mono text-xs text-gray-950 placeholder-gray-400 focus:outline-none transition-all"
                   />
                 </div>
                 <div>
                   <label className="block text-[10px] font-mono text-gray-500 uppercase font-black mb-1.5 tracking-widest">
-                    TRANSMISSION TAGLINE
+                    DESCRIPTION / COMMENTARY
                   </label>
                   <input
                     type="text"
                     value={description}
                     onChange={(e) => setDescription(e.target.value)}
-                    placeholder="e.g. Physics class quiz or fun vote"
-                    className="w-full bg-white border-2 border-gray-200 hover:border-gray-300 focus:border-shonen-orange px-4 py-2.5 font-mono text-xs text-gray-950 placeholder-gray-400 focus:outline-none transition-all clip-cyber-card-sm"
+                    placeholder="e.g. Cast your vote & state your opinion!"
+                    className="w-full bg-white border-2 border-gray-200 hover:border-gray-300 focus:border-black px-4 py-2 font-mono text-xs text-gray-950 placeholder-gray-400 focus:outline-none transition-all"
                   />
                 </div>
               </div>
 
-              {/* Dynamic Lifespan Duration Dropdown Selector */}
-              <div>
-                <label className="block text-[10px] font-mono text-gray-500 uppercase font-black mb-1.5 tracking-widest">
-                  SELECT STREAM LIFESPAN TIME WINDOW
-                </label>
-                <select
-                  value={selectedDuration}
-                  onChange={(e) => {
-                    sounds.playTick();
-                    setSelectedDuration(Number(e.target.value));
-                  }}
-                  className="w-full bg-white border-2 border-gray-200 hover:border-gray-300 focus:border-shonen-orange px-4 py-2.5 font-mono text-xs text-gray-950 focus:outline-none transition-all clip-cyber-card-sm uppercase"
-                >
-                  <option value={1}>1 HOUR (STANDARD)</option>
-                  <option value={2}>2 HOURS (STANDARD)</option>
-                  <option value={24}>24 HOURS / 1 DAY (STANDARD MAX)</option>
-                  {isPremium ? (
-                    <option value={48}>🚀 48 HOURS / 2 DAYS (PREMIUM ACCESS UNLOCKED)</option>
-                  ) : (
-                    <option value={48} disabled>🔒 48 HOURS / 2 DAYS (REQUIRES PREMIUM OPERATOR STATUS)</option>
-                  )}
-                </select>
-              </div>
-
-              {/* Contestants / Options List */}
+              {/* Poll Options (Optional for Media Posts, Required for Polls) */}
               <div>
                 <div className="flex justify-between items-center mb-1.5">
                   <label className="text-[10px] font-mono text-gray-500 uppercase font-black tracking-widest">
-                    COMPETING OPTIONS (2-5)
+                    {postType === 'POLL' ? 'COMPETING ENTRIES (2 TO 5)' : 'COMMUNITY VOTE OPTIONS (OPTIONAL)'}
                   </label>
-                  <button
-                    type="button"
-                    onClick={handleAddOption}
-                    disabled={options.length >= 5}
-                    className="text-[10px] font-mono text-shonen-orange hover:text-black flex items-center gap-1 disabled:opacity-30 disabled:pointer-events-none transition-colors font-bold"
-                  >
-                    <Plus className="w-3.5 h-3.5" /> ADD OPTION
-                  </button>
+                  {options.length < 5 && (
+                    <button
+                      type="button"
+                      onClick={handleAddOption}
+                      className="text-[9px] font-mono font-bold text-shonen-orange hover:text-black flex items-center gap-1 uppercase cursor-pointer"
+                    >
+                      <Plus className="w-3 h-3" /> ADD OPTION
+                    </button>
+                  )}
                 </div>
-                <div className="space-y-2 max-h-[160px] overflow-y-auto pr-1">
+
+                <div className="space-y-2">
                   {options.map((opt, idx) => (
-                    <div key={idx} className="flex items-center gap-2">
-                      <div className="font-mono text-xs text-gray-500 font-bold select-none min-w-[20px]">
-                        #{idx + 1}
-                      </div>
+                    <div key={idx} className="flex gap-2">
                       <input
                         type="text"
                         value={opt}
                         onChange={(e) => handleOptionChange(idx, e.target.value)}
-                        placeholder={`e.g. Option ${idx + 1}`}
-                        className="flex-1 bg-white border border-gray-200 hover:border-gray-300 focus:border-shonen-orange px-3 py-1.5 font-mono text-xs text-gray-950 placeholder-gray-400 focus:outline-none clip-cyber-card-sm"
+                        placeholder={`OPTION #${idx + 1} ${postType !== 'POLL' ? '(e.g. 10/10 vs Mid)' : ''}`}
+                        className="flex-1 bg-white border-2 border-gray-200 hover:border-gray-300 focus:border-black px-3 py-1.5 font-mono text-xs text-gray-950 focus:outline-none"
                       />
-                      <button
-                        type="button"
-                        onClick={() => handleRemoveOption(idx)}
-                        disabled={options.length <= 2}
-                        className="text-gray-400 hover:text-shonen-orange p-1.5 disabled:opacity-20 disabled:pointer-events-none transition-colors"
-                      >
-                        <Trash2 className="w-4 h-4" />
-                      </button>
+                      {options.length > 2 && (
+                        <button
+                          type="button"
+                          onClick={() => handleRemoveOption(idx)}
+                          className="px-2 py-1 bg-gray-100 hover:bg-rose-500 hover:text-white border border-gray-300 text-gray-600 transition-all cursor-pointer"
+                        >
+                          <Trash2 className="w-3.5 h-3.5" />
+                        </button>
+                      )}
                     </div>
                   ))}
                 </div>
               </div>
 
-              {/* Priority Boost Option */}
-              <div className="bg-shonen-orange/5 border border-shonen-orange/20 p-3.5 flex items-center justify-between clip-cyber-card-sm">
+              {/* Comments toggle */}
+              <div className="bg-gray-50 border border-gray-200 p-3 flex items-center justify-between">
                 <div className="font-mono text-xs">
-                  <p className="font-bold text-shonen-orange uppercase flex items-center gap-1.5">
-                    <Sparkles className="w-3.5 h-3.5 animate-pulse text-shonen-orange" />
-                    ACTIVATE PRIORITY BOOSTER [₹5]
-                  </p>
-                  <p className="text-[9px] text-gray-500 uppercase mt-0.5">
-                    ELEVATE STREAM TO THE TOP FEATURED ARENA ROW
-                  </p>
-                </div>
-                <input
-                  type="checkbox"
-                  checked={isPriority}
-                  onChange={(e) => {
-                    sounds.playTick();
-                    const val = e.target.checked;
-                    setIsPriority(val);
-                    if (val) {
-                      if (isPremium) {
-                        setUtrRef('PREMIUM_BYPASS');
-                        setIsPendingVerification(false);
-                        alert("👑 PREMIUM SYSTEM BYPASS: PRIORITY BOOST ENFORCED INSTANTLY FOR FREE!");
-                      } else {
-                        handlePayment(5);
-                      }
-                    } else {
-                      if (!isSpotlight) {
-                        setUtrRef('');
-                        setIsPendingVerification(false);
-                      }
-                    }
-                  }}
-                  className="w-4 h-4 accent-shonen-orange cursor-pointer"
-                />
-              </div>
-
-              {/* 🔥 PROMOTED: PUSH TO GLOBAL SPOTLIGHT (₹100) */}
-              <div className="bg-shonen-orange/5 border border-shonen-orange/20 p-3.5 flex flex-col gap-2 clip-cyber-card-sm">
-                <div className="flex items-center justify-between">
-                  <div className="font-mono text-xs">
-                    <p className="font-bold text-shonen-orange uppercase flex items-center gap-1.5">
-                      <Flame className="w-3.5 h-3.5 animate-pulse text-shonen-orange" />
-                      [ 🔥 PROMOTED: PUSH TO GLOBAL SPOTLIGHT (₹100) ]
-                    </p>
-                    <p className="text-[9px] text-gray-500 uppercase mt-0.5">
-                      Remit ₹100 to anchor this tournament on the global spotlight banner.
-                    </p>
-                  </div>
-                  <input
-                    type="checkbox"
-                    checked={isSpotlight}
-                    onChange={(e) => {
-                      sounds.playTick();
-                      const val = e.target.checked;
-                      setIsSpotlight(val);
-                      if (val) {
-                        if (isPremium) {
-                          setUtrRef('PREMIUM_BYPASS');
-                          setIsPendingVerification(false);
-                          alert("👑 PREMIUM SYSTEM BYPASS: SPOTLIGHT FEATURE ENFORCED INSTANTLY FOR FREE!");
-                        } else {
-                          handlePayment(100);
-                        }
-                      } else {
-                        if (!isPriority) {
-                          setUtrRef('');
-                          setIsPendingVerification(false);
-                        }
-                      }
-                    }}
-                    className="w-4 h-4 accent-shonen-orange cursor-pointer"
-                  />
-                </div>
-                {utrRef && (
-                  <div className="font-mono text-[9px] text-emerald-600 bg-emerald-50 p-2 border border-emerald-200 flex items-center gap-1.5 rounded-sm">
-                    <span className="animate-pulse">●</span>
-                    <span>
-                      {utrRef === 'PREMIUM_BYPASS' 
-                        ? '👑 SPOTLIGHT CONFIRMED VIA PREMIUM BYPASS PROTOCOL'
-                        : `SPOTLIGHT CONFIRMED (UTR: ${utrRef}) - PENDING ADMIN VERIFICATION`}
-                    </span>
-                  </div>
-                )}
-              </div>
-
-              {/* Comments Section Control Toggle */}
-              <div className="bg-shonen-orange/5 border border-shonen-orange/20 p-3.5 flex items-center justify-between clip-cyber-card-sm">
-                <div className="font-mono text-xs">
-                  <p className="font-bold text-shonen-orange uppercase flex items-center gap-1.5">
-                    COMMENTS PROTOCOL [ENABLED]
-                  </p>
-                  <p className="text-[9px] text-gray-500 uppercase mt-0.5">
-                    ALLOW OPERATORS TO POST PUBLIC TRANSMISSIONS UNDER THIS ARENA
-                  </p>
+                  <p className="font-bold text-gray-950 uppercase">COMMENTS PROTOCOL [ENABLED]</p>
+                  <p className="text-[9px] text-gray-500 uppercase mt-0.5">ALLOW OPERATORS TO POST PUBLIC DISCUSSIONS</p>
                 </div>
                 <input
                   type="checkbox"
@@ -517,12 +607,55 @@ export default function LaunchRoomModal({ isOpen, onClose, onAddPoll, currentUse
                 />
               </div>
 
+              {/* MANDATORY COMMUNITY SAFETY PLEDGE COVENANT */}
+              <div className="bg-amber-50 border-2 border-black p-3.5 space-y-2">
+                <div className="flex items-center gap-2 font-mono text-[10px] font-black text-amber-950 uppercase tracking-wider">
+                  <ShieldCheck className="w-4 h-4 text-amber-600 shrink-0" />
+                  <span>MANDATORY COMMUNITY INTEGRITY & SAFETY COVENANT</span>
+                </div>
+                <p className="text-[9px] font-mono text-amber-900 leading-relaxed uppercase">
+                  Before transmitting any photo, video, or poll, you must agree:
+                  <span className="font-bold block mt-0.5 text-black">
+                    "I solemnly pledge that this transmission contains NO nudity, adult/NSFW content, extreme violence, hate speech, or harmful material. I acknowledge that violations will result in permanent chassis decommissioning (ban) and IP forfeiture."
+                  </span>
+                </p>
+                <label className="flex items-center gap-2.5 pt-1 cursor-pointer select-none">
+                  <input
+                    type="checkbox"
+                    checked={guidelinesAccepted}
+                    onChange={(e) => {
+                      sounds.playSelect();
+                      setGuidelinesAccepted(e.target.checked);
+                    }}
+                    className="w-4 h-4 accent-pink-600 cursor-pointer"
+                  />
+                  <span className="font-mono text-[10px] font-black uppercase text-pink-900">
+                    [ ✓ ] I ACCEPT COMMUNITY RULES & COMMIT TO ZERO NUDITY / ZERO HARM
+                  </span>
+                </label>
+              </div>
+
               {/* Submit Button */}
               <button
                 type="submit"
-                className="w-full bg-shonen-orange text-white hover:bg-black border-2 border-black text-xs font-black py-3 px-4 uppercase tracking-widest transition-all duration-200 shadow-sm hover:shadow-md flex items-center justify-center gap-2 cursor-pointer clip-diagonal mt-6"
+                disabled={!guidelinesAccepted}
+                className={`w-full text-xs font-black py-3 px-4 uppercase tracking-widest transition-all duration-200 border-2 border-black flex items-center justify-center gap-2 ${
+                  guidelinesAccepted
+                    ? 'bg-gradient-to-r from-pink-600 via-rose-500 to-amber-500 hover:from-black hover:to-black text-white cursor-pointer shadow-md active:scale-98'
+                    : 'bg-gray-100 border-gray-300 text-gray-400 cursor-not-allowed'
+                }`}
               >
-                <Send className="w-4 h-4" /> INJECT TRANSMISSION INTO STREAM
+                {guidelinesAccepted ? (
+                  <>
+                    <Send className="w-4 h-4" />
+                    <span>INJECT TRANSMISSION INTO STREAM</span>
+                  </>
+                ) : (
+                  <>
+                    <Lock className="w-4 h-4" />
+                    <span>[ 🔒 ACCEPT SAFETY COVENANT TO TRANSMIT ]</span>
+                  </>
+                )}
               </button>
             </form>
           </motion.div>
@@ -538,8 +671,7 @@ export default function LaunchRoomModal({ isOpen, onClose, onAddPoll, currentUse
             exit={{ scale: 0.9, y: 20, opacity: 0 }}
             className="w-full max-w-sm bg-white border-4 border-black p-6 clip-cyber-card shadow-lg relative z-[100] text-gray-950"
           >
-            {/* Caution stripes at top */}
-            <div className="absolute top-0 left-0 right-0 h-1.5 bg-[linear-gradient(45deg,#FF6B00_25%,#fff_25%,#fff_50%,#FF6B00_50%,#FF6B00_75%,#fff_75%,#fff)] bg-[size:12px_12px]" />
+            <div className="absolute top-0 left-0 right-0 h-1.5 bg-gradient-to-r from-pink-500 via-rose-500 to-amber-500" />
 
             <h3 className="font-mono text-xs font-black text-shonen-orange flex items-center gap-1.5 mb-2 mt-2">
               <AlertTriangle className="w-4 h-4 text-shonen-orange animate-pulse" />
@@ -554,7 +686,6 @@ export default function LaunchRoomModal({ isOpen, onClose, onAddPoll, currentUse
               <span className="font-mono text-[9px] text-gray-500 uppercase block">TARGET GATEWAY: FAMPAY UPI ID</span>
               <span className="font-black font-mono text-shonen-orange text-sm tracking-wider block">9368427694@fam</span>
               
-              {/* Responsive UPI Button / QR Code Section */}
               {typeof window !== 'undefined' && (/Android|webOS|iPhone|iPad|iPod|BlackBerry|IEMobile|Opera Mini/i.test(navigator.userAgent) || window.innerWidth < 768) ? (
                 <a
                   href={`upi://pay?pa=9368427694@fam&pn=VOTE_ARENA&am=${paymentAmount}&cu=INR`}
@@ -566,7 +697,7 @@ export default function LaunchRoomModal({ isOpen, onClose, onAddPoll, currentUse
               ) : (
                 <div className="space-y-2">
                   <img 
-                     src={`https://api.qrserver.com/v1/create-qr-code/?data=${encodeURIComponent(`upi://pay?pa=9368427694@fam&pn=VOTE_ARENA&am=${paymentAmount}&cu=INR`)}`} 
+                    src={`https://api.qrserver.com/v1/create-qr-code/?data=${encodeURIComponent(`upi://pay?pa=9368427694@fam&pn=VOTE_ARENA&am=${paymentAmount}&cu=INR`)}`} 
                     alt="UPI QR Code" 
                     referrerPolicy="no-referrer"
                     className="w-40 h-40 mx-auto border-2 border-shonen-orange p-1 bg-white"
@@ -598,7 +729,7 @@ export default function LaunchRoomModal({ isOpen, onClose, onAddPoll, currentUse
                     setShowPaymentModal(false);
                     setTempUtr('');
                   }}
-                  className="flex-1 bg-white text-gray-500 font-mono text-[10px] py-2 font-bold hover:text-gray-950 transition-colors border border-gray-200"
+                  className="flex-1 bg-gray-100 hover:bg-gray-200 text-gray-700 font-mono text-xs py-2 font-bold uppercase transition-all"
                 >
                   CANCEL
                 </button>
@@ -607,18 +738,18 @@ export default function LaunchRoomModal({ isOpen, onClose, onAddPoll, currentUse
                   onClick={() => {
                     if (!tempUtr.trim()) {
                       sounds.playError();
-                      alert("Please enter a valid reference UTR number.");
+                      alert('PLEASE ENTER YOUR TRANSACTION UTR REF NO.');
                       return;
                     }
                     sounds.playImpact();
                     setUtrRef(tempUtr.trim());
                     setIsPendingVerification(true);
-                    alert("📧 CONFIRMATION TRANSMITTED TO adhyangiri6@gmail.com!\n\nYour feature request is pending approval from adhyangiri6@gmail.com. If allowed YES, your arena feature will begin.");
                     setShowPaymentModal(false);
+                    setTempUtr('');
                   }}
-                  className="flex-1 bg-shonen-orange text-white font-mono text-[10px] py-2 font-black hover:bg-black transition-colors"
+                  className="flex-1 bg-shonen-orange hover:bg-black text-white font-mono text-xs py-2 font-black uppercase transition-all"
                 >
-                  SUBMIT REF
+                  VERIFY REF
                 </button>
               </div>
             </div>

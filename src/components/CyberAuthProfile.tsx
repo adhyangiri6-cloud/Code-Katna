@@ -5,6 +5,7 @@ import { sounds } from './SoundManager';
 import { supabase } from '../lib/supabaseClient';
 import ImageCropper from './ImageCropper';
 import { OperatorApprovalConsole } from './OperatorApprovalConsole';
+import { saveUserProfile } from '../lib/dataStorage';
 import { 
   X, 
   Terminal, 
@@ -41,6 +42,7 @@ interface CyberAuthProfileProps {
   onUpdatePreferences: (prefs: UserPreferences) => void;
   onUpgradePremium?: (utr?: string) => void;
   onUpdateAvatarUrl?: (url: string) => void;
+  onUpdateProfile?: (data: { username: string; bio: string; avatar_url: string; preferences: UserPreferences }) => void;
 }
 
 export default function CyberAuthProfile({
@@ -51,7 +53,8 @@ export default function CyberAuthProfile({
   onLogout,
   onUpdatePreferences,
   onUpgradePremium,
-  onUpdateAvatarUrl
+  onUpdateAvatarUrl,
+  onUpdateProfile
 }: CyberAuthProfileProps) {
   const [tab, setTab] = useState<'login' | 'profile'>('login');
   
@@ -72,6 +75,8 @@ export default function CyberAuthProfile({
   const [avatarUrl, setAvatarUrl] = useState('');
   const [rawImageUrl, setRawImageUrl] = useState<string | null>(null);
   const [showPresetSelector, setShowPresetSelector] = useState(false);
+  const [editUsername, setEditUsername] = useState('');
+  const [editBio, setEditBio] = useState('');
 
   const fileInputRef = useRef<HTMLInputElement>(null);
 
@@ -84,6 +89,8 @@ export default function CyberAuthProfile({
   useEffect(() => {
     if (currentUser) {
       setTab('profile');
+      setEditUsername(currentUser.username || '');
+      setEditBio(currentUser.bio || '');
       setPrefAccent(currentUser.preferences.accentColor);
       setPrefAvatar(currentUser.preferences.avatarTag);
       setPrefSounds(currentUser.preferences.enableAlertSounds);
@@ -369,11 +376,18 @@ export default function CyberAuthProfile({
     reader.readAsDataURL(file);
   };
 
-  // Save modified Preferences
+  // Save modified Preferences & Profile Info
   const handleSavePreferences = () => {
     sounds.playImpact();
     if (prefAvatar.length < 2 || prefAvatar.length > 4) {
       setError('AVATAR TAG CODE MUST BE 2 TO 4 LETTERS.');
+      sounds.playError();
+      return;
+    }
+
+    const trimmedUsername = editUsername.trim();
+    if (trimmedUsername.length < 2) {
+      setError('CODENAME / USERNAME MUST BE AT LEAST 2 CHARACTERS.');
       sounds.playError();
       return;
     }
@@ -389,11 +403,30 @@ export default function CyberAuthProfile({
     if (onUpdateAvatarUrl) {
       onUpdateAvatarUrl(avatarUrl);
     }
-    setSuccess('PREFERENCES SYNCHRONIZED INTO GRID CORRUPTURE.');
+
+    if (currentUser?.id) {
+      saveUserProfile({
+        id: currentUser.id,
+        username: trimmedUsername,
+        bio: editBio.trim(),
+        avatar_url: avatarUrl
+      });
+    }
+
+    if (onUpdateProfile) {
+      onUpdateProfile({
+        username: trimmedUsername,
+        bio: editBio.trim(),
+        avatar_url: avatarUrl,
+        preferences: updatedPrefs
+      });
+    }
+
+    setSuccess('PROFILE SPECS & PFP SYNCHRONIZED ACROSS SUBNET!');
     
     setTimeout(() => {
       setSuccess(null);
-    }, 1800);
+    }, 2200);
   };
 
   const activeAccentColorClass = () => {
@@ -798,6 +831,38 @@ export default function CyberAuthProfile({
                         <Settings className="w-4 h-4" /> [PREFERENCES_CALIBRATOR]
                       </div>
 
+                      {/* Editable Username and Bio */}
+                      <div className="p-3 bg-gray-50 border border-gray-200 space-y-2.5">
+                        <div>
+                          <label className="block text-[10px] font-mono text-gray-500 uppercase font-black mb-1 tracking-widest">
+                            OPERATOR CODENAME / USERNAME
+                          </label>
+                          <input
+                            type="text"
+                            value={editUsername}
+                            onChange={(e) => setEditUsername(e.target.value)}
+                            maxLength={30}
+                            placeholder="OPERATOR NAME"
+                            className="w-full bg-white border border-gray-300 hover:border-gray-400 focus:border-shonen-orange px-3 py-1.5 font-mono text-xs text-gray-950 focus:outline-none"
+                          />
+                        </div>
+
+                        <div>
+                          <label className="block text-[10px] font-mono text-gray-500 uppercase font-black mb-1 tracking-widest">
+                            NEURAL BIO SPECS
+                          </label>
+                          <textarea
+                            value={editBio}
+                            onChange={(e) => setEditBio(e.target.value)}
+                            maxLength={240}
+                            rows={2}
+                            placeholder="SHARE YOUR ANIME PREFERENCES, FAVORITE CLASH MATCHUPS & BIO..."
+                            className="w-full bg-white border border-gray-300 hover:border-gray-400 focus:border-shonen-orange px-3 py-1.5 font-mono text-xs text-gray-950 focus:outline-none resize-none"
+                          />
+                          <span className="text-[8px] font-mono text-gray-400 block text-right">{editBio.length}/240</span>
+                        </div>
+                      </div>
+
                       {/* Customize Avatar abbreviation */}
                       <div>
                         <label className="block text-[10px] font-mono text-gray-500 uppercase font-black mb-1.5 tracking-widest">
@@ -1019,9 +1084,9 @@ export default function CyberAuthProfile({
 
                       <button
                         onClick={handleSavePreferences}
-                        className="w-full bg-shonen-orange text-white font-black text-xs py-2.5 px-4 uppercase tracking-widest transition-all hover:bg-black border border-black flex items-center justify-center gap-1.5 cursor-pointer"
+                        className="w-full bg-gradient-to-r from-pink-600 to-amber-500 hover:from-black hover:to-black text-white font-black text-xs py-2.5 px-4 uppercase tracking-widest transition-all border-2 border-black flex items-center justify-center gap-1.5 cursor-pointer shadow-sm active:scale-98"
                       >
-                        <Sliders className="w-4 h-4" /> COMMIT CALIBRATIONS
+                        <CheckCircle className="w-4 h-4" /> [ 💾 SAVE PROFILE SPECS & PFP ]
                       </button>
                     </div>
 

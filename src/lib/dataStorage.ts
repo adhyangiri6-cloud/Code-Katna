@@ -1,4 +1,4 @@
-import { PollOption, DbComment, Matchup } from '../types';
+import { PollOption, DbComment, Matchup, Poll, TasteMatchRequest } from '../types';
 import { supabase } from './supabaseClient';
 
 // Helper to convert any string ID into a positive safe 32-bit bigint
@@ -331,4 +331,237 @@ export function saveCommsMessage(msg: any): any[] {
     console.warn('Failed to save message to localStorage:', e);
   }
   return updated;
+}
+
+// ----------------------------------------------------
+// 6. PROFILES PERSISTENCE (PFP, USERNAME, BIO)
+// ----------------------------------------------------
+const PROFILES_KEY = 'vote_arena_local_profiles';
+
+export function getStoredProfiles(): Record<string, any> {
+  try {
+    const raw = localStorage.getItem(PROFILES_KEY);
+    return raw ? JSON.parse(raw) : {};
+  } catch {
+    return {};
+  }
+}
+
+export function saveUserProfile(profile: {
+  id: string;
+  username: string;
+  bio?: string;
+  avatar_url?: string;
+  gender?: string;
+  age?: number | null;
+  is_premium?: boolean;
+}): void {
+  try {
+    const current = getStoredProfiles();
+    current[profile.id] = {
+      ...current[profile.id],
+      ...profile,
+      updated_at: new Date().toISOString()
+    };
+    localStorage.setItem(PROFILES_KEY, JSON.stringify(current));
+    // Also save user personal session if matches
+    const storedUser = localStorage.getItem('codekatana_user');
+    if (storedUser) {
+      try {
+        const u = JSON.parse(storedUser);
+        if (u.id === profile.id) {
+          u.username = profile.username || u.username;
+          u.bio = profile.bio !== undefined ? profile.bio : u.bio;
+          u.avatar_url = profile.avatar_url || u.avatar_url;
+          localStorage.setItem('codekatana_user', JSON.stringify(u));
+        }
+      } catch {}
+    }
+    window.dispatchEvent(new CustomEvent('vote-arena-profiles-updated', { detail: { profile } }));
+  } catch (e) {
+    console.warn('Failed to save profile locally:', e);
+  }
+}
+
+// ----------------------------------------------------
+// 7. CUSTOM MEDIA POSTS & POLLS PERSISTENCE
+// ----------------------------------------------------
+const CUSTOM_POSTS_KEY = 'vote_arena_custom_polls';
+
+export function getCustomPosts(): Poll[] {
+  try {
+    const raw = localStorage.getItem(CUSTOM_POSTS_KEY);
+    return raw ? JSON.parse(raw) : [];
+  } catch {
+    return [];
+  }
+}
+
+export function saveCustomPost(poll: Poll): Poll[] {
+  const current = getCustomPosts();
+  const index = current.findIndex(p => p.id === poll.id);
+  let updated: Poll[];
+  if (index >= 0) {
+    updated = [...current];
+    updated[index] = { ...updated[index], ...poll };
+  } else {
+    updated = [poll, ...current];
+  }
+  try {
+    localStorage.setItem(CUSTOM_POSTS_KEY, JSON.stringify(updated));
+    window.dispatchEvent(new CustomEvent('vote-arena-posts-updated', { detail: { poll } }));
+  } catch (e) {
+    console.warn('Failed to save custom post locally:', e);
+  }
+  return updated;
+}
+
+// ----------------------------------------------------
+// 8. TWO-WAY TASTE MATCHER PERSISTENCE & ALGORITHM
+// ----------------------------------------------------
+const TASTE_REQUESTS_KEY = 'vote_arena_taste_requests';
+
+export function getTasteRequests(): TasteMatchRequest[] {
+  try {
+    const raw = localStorage.getItem(TASTE_REQUESTS_KEY);
+    return raw ? JSON.parse(raw) : [];
+  } catch {
+    return [];
+  }
+}
+
+export function saveTasteRequest(req: TasteMatchRequest): TasteMatchRequest[] {
+  const current = getTasteRequests();
+  const existingIdx = current.findIndex(r => r.id === req.id);
+  let updated: TasteMatchRequest[];
+  if (existingIdx >= 0) {
+    updated = [...current];
+    updated[existingIdx] = req;
+  } else {
+    updated = [req, ...current];
+  }
+  try {
+    localStorage.setItem(TASTE_REQUESTS_KEY, JSON.stringify(updated));
+    window.dispatchEvent(new CustomEvent('vote-arena-taste-requests-updated', { detail: { request: req } }));
+  } catch (e) {
+    console.warn('Failed to save taste request:', e);
+  }
+  return updated;
+}
+
+// Calculate similarity between two users based on their votes and created polls
+export function calculateTasteSimilarity(
+  userAId: string,
+  userBId: string,
+  allPolls: Poll[] = []
+): {
+  score: number;
+  sharedCount: number;
+  badges: string[];
+  breakdown: { pollTitle: string; matchedChoice: string }[];
+} {
+  const votesA = getUserCastVotes(userAId);
+  const votesB = getUserCastVotes(userBId);
+
+  const sharedKeys = Object.keys(votesA).filter(pollId => pollId in votesB);
+  let matches = 0;
+  const breakdown: { pollTitle: string; matchedChoice: string }[] = [];
+
+  sharedKeys.forEach(pollId => {
+    if (votesA[pollId] === votesB[pollId]) {
+      matches += 1;
+      const poll = allPolls.find(p => p.id === pollId);
+      const choiceIdx = votesA[pollId];
+      const choiceText = poll?.options[choiceIdx]?.text || `Choice #${choiceIdx + 1}`;
+      breakdown.push({
+        pollTitle: poll?.title || `Clash ${pollId.slice(0, 6)}`,
+        matchedChoice: choiceText
+      });
+    }
+  });
+
+  // Calculate score
+  let score = 0;
+  if (sharedKeys.length > 0) {
+    const rawRatio = matches / sharedKeys.length;
+    // Map ratio to 60% - 98% range for high-energy anime affinity
+    score = Math.round(60 + rawRatio * 38);
+  } else {
+    // Deterministic anime affinity based on username / ID hash
+    const combined = `${userAId}_${userBId}`;
+    let hash = 0;
+    for (let i = 0; i < combined.length; i++) {
+      hash = (hash << 5) - hash + combined.charCodeAt(i);
+      hash |= 0;
+    }
+    score = 80 + (Math.abs(hash) % 18); // 80% to 97%
+  }
+
+  // Generate badges
+  const badges: string[] = [];
+  if (score >= 90) badges.push('✨ SOUL LINK S-RANK');
+  if (score >= 80) badges.push('⚔️ SHONEN SYNERGY');
+  badges.push('🌸 KAWAII TASTE TWINS');
+  badges.push('🎌 ANIME CONNOISSEURS');
+
+  return {
+    score,
+    sharedCount: matches,
+    badges,
+    breakdown
+  };
+}
+
+export function createTasteMatchRequest(
+  fromUser: { id: string; username: string; avatar_url?: string; avatar?: string },
+  toUser: { id: string; username: string; avatar_url?: string; avatar?: string },
+  allPolls: Poll[] = []
+): { request: TasteMatchRequest; alreadyMatched: boolean } {
+  const requests = getTasteRequests();
+
+  // Check if toUser has already sent a request to fromUser (Two-way completion!)
+  const reverseRequest = requests.find(
+    r => r.from_user_id === toUser.id && r.to_user_id === fromUser.id && r.status === 'pending'
+  );
+
+  if (reverseRequest) {
+    // Auto-accept two-way match!
+    const similarity = calculateTasteSimilarity(fromUser.id, toUser.id, allPolls);
+    const acceptedReq: TasteMatchRequest = {
+      ...reverseRequest,
+      status: 'accepted',
+      similarity_score: similarity.score,
+      shared_votes_count: similarity.sharedCount,
+      matched_categories: similarity.badges
+    };
+    saveTasteRequest(acceptedReq);
+    return { request: acceptedReq, alreadyMatched: true };
+  }
+
+  // Check if current user already sent one
+  const existing = requests.find(
+    r => r.from_user_id === fromUser.id && r.to_user_id === toUser.id
+  );
+  if (existing) {
+    return { request: existing, alreadyMatched: existing.status === 'accepted' };
+  }
+
+  const similarity = calculateTasteSimilarity(fromUser.id, toUser.id, allPolls);
+  const newReq: TasteMatchRequest = {
+    id: `tm-${Date.now()}-${Math.random().toString(36).slice(2, 6)}`,
+    from_user_id: fromUser.id,
+    from_username: fromUser.username,
+    from_avatar: fromUser.avatar_url || fromUser.avatar,
+    to_user_id: toUser.id,
+    to_username: toUser.username,
+    to_avatar: toUser.avatar_url || toUser.avatar,
+    status: 'pending',
+    similarity_score: similarity.score,
+    shared_votes_count: similarity.sharedCount,
+    matched_categories: similarity.badges,
+    created_at: new Date().toISOString()
+  };
+
+  saveTasteRequest(newReq);
+  return { request: newReq, alreadyMatched: false };
 }

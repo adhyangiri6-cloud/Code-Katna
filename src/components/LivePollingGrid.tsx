@@ -491,7 +491,7 @@ export default function LivePollingGrid({
             const isSelfHost = currentUser?.username?.toUpperCase() === hostClean;
             const isHostAdmin = hostClean === 'ADHYANGIRI6' || hostClean === 'ARENA_MOD_X';
             const hostProfile = allProfiles?.find(p => p.username?.toUpperCase() === hostClean);
-            const hostAvatarUrl = hostProfile?.avatar_url;
+            const hostAvatarUrl = hostProfile?.avatar_url || poll.author_avatar;
 
             // Social likes line simulation
             const isLiked = !!likedPolls[poll.id];
@@ -587,58 +587,107 @@ export default function LivePollingGrid({
                 </div>
 
                 {/* 2. Central Square Manga Clash Pane (Instagram Post content) */}
-                <div className="relative aspect-square w-full bg-[#fcfbfc] flex flex-col justify-between overflow-hidden border-b border-gray-200 p-6">
-                  {/* Background Speedlines */}
-                  <div className="absolute inset-0 manga-screentone opacity-[0.08] z-0" />
-                  <div className="absolute inset-0 manga-speedlines opacity-[0.04] z-0" />
-                  
-                  {/* Ambient glowing vignette */}
-                  <div className="absolute inset-0 bg-gradient-to-t from-gray-100/10 via-transparent to-gray-50/10 pointer-events-none z-0" />
+                {/* 2. Central Square Manga Clash / Photo / Video Pane */}
+                {poll.media_type === 'IMAGE' && poll.media_url ? (
+                  <div className="relative aspect-square w-full bg-black flex flex-col justify-between overflow-hidden border-b border-gray-200 group">
+                    <img
+                      src={poll.media_url}
+                      alt={poll.title}
+                      className="w-full h-full object-cover transition-transform duration-500 group-hover:scale-105"
+                    />
+                    <div className="absolute inset-0 bg-gradient-to-t from-black/85 via-black/10 to-black/60 pointer-events-none" />
 
-                  {/* Top Bar of the image: categories and system tags */}
-                  <div className="z-10 flex justify-between items-center w-full">
-                    <span className={`font-mono text-[9px] font-black border px-2 py-0.5 rounded-sm uppercase flex items-center gap-1.5 ${getCategoryColor(poll.category)}`}>
-                      {getCategoryIcon(poll.category)}
-                      {poll.category}
-                    </span>
-                    <span className="font-mono text-[8px] text-gray-400 tracking-widest uppercase">
-                      SYS_STREAM_ID // {poll.id.slice(0, 6).toUpperCase()}
-                    </span>
-                  </div>
-
-                  {/* Big Epic Title in Center */}
-                  <div className="z-10 text-center my-auto py-4">
-                    <span className="text-[9px] font-mono text-shonen-orange font-black uppercase tracking-[0.25em] block mb-1">
-                      「 決戦 : KESSEN MATCHUP 」
-                    </span>
-                    <h3 className="text-2xl sm:text-3xl font-black text-gray-950 uppercase tracking-tight leading-none px-2">
-                      {poll.title}
-                    </h3>
-                    <p className="text-gray-600 text-xs font-sans mt-2 max-w-sm mx-auto opacity-95">
-                      {poll.description}
-                    </p>
-                  </div>
-
-                  {/* STICKMAN FIGHT ANIMATION */}
-                  <StickmanFight kick={pollKicks[poll.id] || null} />
-
-                  {/* Character matchup representation details */}
-                  <div className="absolute inset-y-0 left-0 right-0 pointer-events-none z-5 flex items-center justify-between px-8">
-                    <div className="w-12 h-12 rounded-full border border-dashed border-gray-300 flex items-center justify-center text-xl font-bold bg-white/60 text-gray-400">
-                      ⚔️
+                    <div className="z-10 flex justify-between items-center w-full p-4">
+                      <span className="font-mono text-[9px] font-black border border-white/30 bg-black/70 text-white px-2 py-0.5 uppercase flex items-center gap-1.5 backdrop-blur-xs">
+                        📸 ANIME PHOTO
+                      </span>
+                      <span className="font-mono text-[8px] bg-gradient-to-r from-pink-600 to-rose-500 text-white px-1.5 py-0.5 font-bold uppercase tracking-wider">
+                        VERIFIED SAFE
+                      </span>
                     </div>
-                    <div className="w-12 h-12 rounded-full border border-dashed border-gray-300 flex items-center justify-center text-xl font-bold bg-white/60 text-gray-400">
-                      🛡️
+
+                    <div className="z-10 p-4 text-left">
+                      <h3 className="text-xl sm:text-2xl font-black text-white uppercase tracking-tight leading-tight drop-shadow-md">
+                        {poll.title}
+                      </h3>
+                      {poll.description && (
+                        <p className="text-gray-200 text-xs font-sans mt-1 line-clamp-2 drop-shadow-sm">
+                          {poll.description}
+                        </p>
+                      )}
                     </div>
                   </div>
-
-                  {/* VS Symbol at bottom of stage overlay */}
-                  <div className="z-10 text-center w-full pb-2">
-                    <span className="text-3xl font-black italic text-shonen-orange bg-white border-2 border-black px-4 py-1.5 inline-block transform -skew-x-12 shadow-sm">
-                      VS
-                    </span>
+                ) : poll.media_type === 'VIDEO' && poll.media_url ? (
+                  <div className="relative aspect-square w-full bg-black flex flex-col justify-between overflow-hidden border-b border-gray-200">
+                    <video
+                      src={poll.media_url}
+                      controls
+                      playsInline
+                      className="w-full h-full object-cover"
+                    />
+                    <div className="absolute top-0 left-0 right-0 z-10 flex justify-between items-center p-3 pointer-events-none">
+                      <span className="font-mono text-[9px] font-black border border-white/30 bg-black/70 text-white px-2 py-0.5 uppercase flex items-center gap-1.5 backdrop-blur-xs">
+                        🎬 ANIME VIDEO
+                      </span>
+                      <span className="font-mono text-[8px] bg-amber-500 text-black px-1.5 py-0.5 font-black uppercase tracking-wider">
+                        VERIFIED STREAM
+                      </span>
+                    </div>
                   </div>
-                </div>
+                ) : (
+                  <div className="relative aspect-square w-full bg-[#fcfbfc] flex flex-col justify-between overflow-hidden border-b border-gray-200 p-6">
+                    {/* Background Speedlines */}
+                    <div className="absolute inset-0 manga-screentone opacity-[0.08] z-0" />
+                    <div className="absolute inset-0 manga-speedlines opacity-[0.04] z-0" />
+                    
+                    {/* Ambient glowing vignette */}
+                    <div className="absolute inset-0 bg-gradient-to-t from-gray-100/10 via-transparent to-gray-50/10 pointer-events-none z-0" />
+
+                    {/* Top Bar of the image: categories and system tags */}
+                    <div className="z-10 flex justify-between items-center w-full">
+                      <span className={`font-mono text-[9px] font-black border px-2 py-0.5 rounded-sm uppercase flex items-center gap-1.5 ${getCategoryColor(poll.category)}`}>
+                        {getCategoryIcon(poll.category)}
+                        {poll.category}
+                      </span>
+                      <span className="font-mono text-[8px] text-gray-400 tracking-widest uppercase">
+                        SYS_STREAM_ID // {poll.id.slice(0, 6).toUpperCase()}
+                      </span>
+                    </div>
+
+                    {/* Big Epic Title in Center */}
+                    <div className="z-10 text-center my-auto py-4">
+                      <span className="text-[9px] font-mono text-shonen-orange font-black uppercase tracking-[0.25em] block mb-1">
+                        「 決戦 : KESSEN MATCHUP 」
+                      </span>
+                      <h3 className="text-2xl sm:text-3xl font-black text-gray-950 uppercase tracking-tight leading-none px-2">
+                        {poll.title}
+                      </h3>
+                      <p className="text-gray-600 text-xs font-sans mt-2 max-w-sm mx-auto opacity-95">
+                        {poll.description}
+                      </p>
+                    </div>
+
+                    {/* STICKMAN FIGHT ANIMATION */}
+                    <StickmanFight kick={pollKicks[poll.id] || null} />
+
+                    {/* Character matchup representation details */}
+                    <div className="absolute inset-y-0 left-0 right-0 pointer-events-none z-5 flex items-center justify-between px-8">
+                      <div className="w-12 h-12 rounded-full border border-dashed border-gray-300 flex items-center justify-center text-xl font-bold bg-white/60 text-gray-400">
+                        ⚔️
+                      </div>
+                      <div className="w-12 h-12 rounded-full border border-dashed border-gray-300 flex items-center justify-center text-xl font-bold bg-white/60 text-gray-400">
+                        🛡️
+                      </div>
+                    </div>
+
+                    {/* VS Symbol at bottom of stage overlay */}
+                    <div className="z-10 text-center w-full pb-2">
+                      <span className="text-3xl font-black italic text-shonen-orange bg-white border-2 border-black px-4 py-1.5 inline-block transform -skew-x-12 shadow-sm">
+                        VS
+                      </span>
+                    </div>
+                  </div>
+                )}
 
                 {/* 3. Post Interaction Action Bar (Instagram style icons) */}
                 <div className="p-4 flex justify-between items-center bg-gray-50 border-b border-gray-100">

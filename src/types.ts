@@ -40,6 +40,10 @@ export interface Poll {
   comments_enabled?: boolean;
   expires_at?: string;
   likes?: number;
+  media_type?: 'NONE' | 'IMAGE' | 'VIDEO';
+  media_url?: string;
+  guidelines_accepted?: boolean;
+  author_avatar?: string;
 }
 
 export interface HistoryItem {
@@ -69,6 +73,24 @@ export interface User {
   is_admin?: boolean;
   email?: string;
   avatar_url?: string;
+  bio?: string;
+  gender?: string;
+  age?: number | null;
+}
+
+export interface TasteMatchRequest {
+  id: string;
+  from_user_id: string;
+  from_username: string;
+  from_avatar?: string;
+  to_user_id: string;
+  to_username: string;
+  to_avatar?: string;
+  status: 'pending' | 'accepted' | 'declined';
+  similarity_score?: number;
+  shared_votes_count?: number;
+  matched_categories?: string[];
+  created_at: string;
 }
 
 export interface PremiumRequest {

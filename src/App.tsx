@@ -11,6 +11,7 @@ import ProfileSetupModal from './components/ProfileSetupModal';
 import OperatorProfileModal from './components/OperatorProfileModal';
 import ShareTransmitModal from './components/ShareTransmitModal';
 import CombatCommsWidget from './components/CombatCommsWidget';
+import TasteMatcherModal from './components/TasteMatcherModal';
 import { AboutFaqSection } from './components/AboutFaqSection';
 import { supabase } from './lib/supabaseClient';
 import {
@@ -26,7 +27,11 @@ import {
   saveMatchupVote,
   loadComments,
   saveComment,
-  getPollLikes
+  getPollLikes,
+  getStoredProfiles,
+  saveUserProfile,
+  getCustomPosts,
+  getTasteRequests
 } from './lib/dataStorage';
 import { 
   Trophy, 
@@ -48,7 +53,8 @@ import {
   Sparkles,
   Monitor,
   Bell,
-  MessageSquare
+  MessageSquare,
+  Heart
 } from 'lucide-react';
 
 const memoryStorage: Record<string, string> = {};
@@ -130,13 +136,15 @@ export default function App() {
   const [isProfileModalOpen, setIsProfileModalOpen] = useState(false);
   const [pollToShare, setPollToShare] = useState<any | null>(null);
   const [isShareModalOpen, setIsShareModalOpen] = useState(false);
+  const [isTasteMatcherOpen, setIsTasteMatcherOpen] = useState(false);
+  const [tasteMatcherTarget, setTasteMatcherTarget] = useState<any | null>(null);
 
   const getMentions = () => {
     const staticMentions = [
       {
         id: 'm1',
-        sender: 'chicapola',
-        text: 'yo @everyone check this out! chicapola is the besto Freindo 🔪🎀',
+        sender: 'SAKURA_CHAN',
+        text: '✨ Welcome to Anime Clash Arena! Send a Taste Matcher request to find your anime taste twin 🌸💖',
         timestamp: Date.now() - 300000,
         sourceTitle: 'BEST SHONEN PROTAGONIST MATCH',
         sourceId: 'goku-saitama'
@@ -233,13 +241,27 @@ export default function App() {
     } catch (e) {}
   };
 
-  // Fetch profiles from Supabase profiles table
+  // Fetch profiles from Supabase profiles table and local storage
   const fetchAllProfiles = async () => {
     try {
+      const combinedMap = new Map<string, any>();
+      
+      // 1. Recover locally saved profiles
+      const localProfiles = getStoredProfiles();
+      Object.values(localProfiles).forEach((p: any) => {
+        if (p?.id) combinedMap.set(p.id, p);
+      });
+
+      // 2. Fetch remote Supabase profiles
       const { data, error } = await supabase.from('profiles').select('*');
       if (!error && data) {
-        setAllProfiles(data);
+        data.forEach((p: any) => {
+          const existing = combinedMap.get(p.id);
+          combinedMap.set(p.id, { ...existing, ...p });
+        });
       }
+
+      setAllProfiles(Array.from(combinedMap.values()));
     } catch (err) {
       console.error('Failed to fetch profiles:', err);
     }
@@ -250,13 +272,23 @@ export default function App() {
     fetchAllVotes();
     fetchPolls();
     fetchActivePolls();
+
+    const handleProfileUpdate = () => fetchAllProfiles();
+    const handlePostUpdate = () => fetchPolls();
+    window.addEventListener('vote-arena-profiles-updated', handleProfileUpdate);
+    window.addEventListener('vote-arena-posts-updated', handlePostUpdate);
+
     const interval = setInterval(() => {
       fetchAllProfiles();
       fetchAllVotes();
       fetchPolls();
       fetchActivePolls();
     }, 5000); // 5 seconds polling to ensure ultra-responsive real-time updates for all users on any server!
-    return () => clearInterval(interval);
+    return () => {
+      clearInterval(interval);
+      window.removeEventListener('vote-arena-profiles-updated', handleProfileUpdate);
+      window.removeEventListener('vote-arena-posts-updated', handlePostUpdate);
+    };
   }, []);
 
   const handleNavSearch = (val: string) => {
@@ -928,6 +960,78 @@ export default function App() {
     });
   };
 
+  const handleUpdateAvatarUrl = (url: string) => {
+    if (!currentUser) return;
+    const updated = { ...currentUser, avatar_url: url };
+    setCurrentUser(updated);
+    try {
+      localStorage.setItem('codekatana_user', JSON.stringify(updated));
+      if (currentUser.id) {
+        localStorage.setItem(`vote_arena_user_${currentUser.id}`, JSON.stringify(updated));
+      }
+    } catch (e) {}
+
+    if (currentUser.id) {
+      saveUserProfile({
+        id: currentUser.id,
+        username: currentUser.username,
+        avatar_url: url
+      });
+      supabase.from('profiles').upsert({
+        id: currentUser.id,
+        username: currentUser.username,
+        avatar_url: url
+      }).then(() => {});
+    }
+    fetchAllProfiles();
+  };
+
+  const handleUpdateProfile = async (updatedData: {
+    username: string;
+    bio: string;
+    avatar_url: string;
+    preferences: UserPreferences;
+  }) => {
+    if (!currentUser) return;
+    const updatedUser: User = {
+      ...currentUser,
+      username: updatedData.username,
+      bio: updatedData.bio,
+      avatar_url: updatedData.avatar_url,
+      avatar: updatedData.preferences.avatarTag,
+      preferences: updatedData.preferences
+    };
+
+    setCurrentUser(updatedUser);
+    try {
+      localStorage.setItem('codekatana_user', JSON.stringify(updatedUser));
+      if (currentUser.id) {
+        localStorage.setItem(`vote_arena_user_${currentUser.id}`, JSON.stringify(updatedUser));
+      }
+    } catch (e) {}
+
+    if (currentUser.id) {
+      saveUserProfile({
+        id: currentUser.id,
+        username: updatedData.username,
+        bio: updatedData.bio,
+        avatar_url: updatedData.avatar_url
+      });
+
+      try {
+        await supabase.from('profiles').upsert({
+          id: currentUser.id,
+          username: updatedData.username,
+          bio: updatedData.bio,
+          avatar_url: updatedData.avatar_url
+        });
+      } catch (err) {
+        console.warn('Remote profile sync error (handled):', err);
+      }
+    }
+    fetchAllProfiles();
+  };
+
   // Handle upgrading active user or requesting premium confirmation
   const handleUpgradeToPremium = async (utrRef?: string) => {
     if (!currentUser || !currentUser.id) return;
@@ -1332,8 +1436,9 @@ export default function App() {
         console.warn('Failed to recover locally hosted polls from storage:', localErr);
       }
 
-      // Combine database streams and local hosted streams
-      const combined = [...mapped, ...localCustomPolls];
+      // Combine database streams, local hosted streams, and custom photo/video media posts
+      const customPosts = getCustomPosts();
+      const combined = [...customPosts, ...mapped, ...localCustomPolls];
 
       // Filter out any expired polls
       const activeCombined = combined.filter((poll: Poll) => {
@@ -2256,6 +2361,32 @@ export default function App() {
             </button>
           </div>
 
+          {/* TASTE MATCHER BUTTON WITH TWO-WAY REQUESTS BADGE */}
+          <div className="relative">
+            <button
+              onClick={() => {
+                sounds.playFanfare();
+                setTasteMatcherTarget(null);
+                setIsTasteMatcherOpen(true);
+              }}
+              title="Two-Way Anime Taste Matcher"
+              className="px-2.5 py-1.5 border-2 border-pink-400 bg-pink-50 text-pink-600 hover:bg-pink-600 hover:text-white transition-all duration-200 rounded-sm relative cursor-pointer font-mono text-[10px] font-black uppercase flex items-center gap-1.5 shadow-xs"
+            >
+              <Heart className="w-3.5 h-3.5 fill-pink-500 text-pink-500 animate-pulse" />
+              <span className="hidden sm:inline">TASTE MATCHER</span>
+              {(() => {
+                const pendingCount = getTasteRequests().filter(
+                  r => r.to_user_id === (currentUser?.id || 'guest') && r.status === 'pending'
+                ).length;
+                return pendingCount > 0 ? (
+                  <span className="bg-pink-600 text-white text-[8px] font-black px-1.5 py-0.2 rounded-full animate-bounce border border-white">
+                    {pendingCount}
+                  </span>
+                ) : null;
+              })()}
+            </button>
+          </div>
+
           {/* Audio Synthesizer Controller Toggle */}
           <button
             onClick={handleToggleMute}
@@ -2269,7 +2400,7 @@ export default function App() {
             {isMuted ? <VolumeX className="w-4 h-4" /> : <Volume2 className="w-4 h-4" />}
           </button>
 
-          {/* Launch Room Button with clip path style */}
+          {/* Launch Room / Post Button */}
           <motion.button
             whileHover={{ scale: 1.05 }}
             whileTap={{ scale: 0.95 }}
@@ -2278,10 +2409,11 @@ export default function App() {
               sounds.playSelect();
               setIsModalOpen(true);
             }}
-            className="bg-transparent border border-shonen-orange text-shonen-orange hover:bg-shonen-orange hover:text-white font-mono text-[10px] md:text-xs font-black px-6 py-2 uppercase tracking-widest transition-all duration-200"
-            style={{ clipPath: 'polygon(0 0, 100% 0, 90% 100%, 0 100%)' }}
+            className="bg-gradient-to-r from-pink-600 via-rose-500 to-amber-500 hover:opacity-95 text-white font-mono text-[10px] md:text-xs font-black px-5 py-2 uppercase tracking-widest transition-all duration-200 border-2 border-black shadow-xs cursor-pointer flex items-center gap-1.5"
+            style={{ clipPath: 'polygon(0 0, 100% 0, 92% 100%, 0 100%)' }}
           >
-            LAUNCH ROOM
+            <Sparkles className="w-3.5 h-3.5 text-yellow-200" />
+            <span>✨ POST / POLL</span>
           </motion.button>
         </div>
       </motion.nav>
@@ -2386,15 +2518,22 @@ export default function App() {
               MASSIVE POP-CULTURE BRACKETS VS PRIVATE CLASSROOM POLLING. THE ARENA AWAITS YOUR COMMAND.
             </motion.p>
 
-            {/* Tagline chicapola is the besto Freindo 🔪🎀 */}
-            <motion.p
+            {/* Cute Anime Tagline */}
+            <motion.div
               initial={{ opacity: 0, y: 15 }}
               animate={{ opacity: 1, y: 0 }}
               transition={{ duration: 0.5, delay: 0.5 }}
-              className="mt-4 text-shonen-orange font-sans font-black text-sm uppercase tracking-wider flex items-center gap-1.5"
+              className="mt-4 flex flex-wrap items-center gap-2"
             >
-              <span>chicapola is the besto Freindo 🔪🎀</span>
-            </motion.p>
+              <span className="bg-pink-50 border-2 border-black text-pink-700 font-mono text-xs font-black px-3 py-1 uppercase tracking-wider flex items-center gap-1.5 shadow-xs">
+                <Heart className="w-3.5 h-3.5 fill-pink-500 text-pink-500 animate-pulse" />
+                ✨ ANIME CLASH & TASTE ARENA
+              </span>
+              <span className="bg-amber-50 border-2 border-black text-amber-900 font-mono text-xs font-black px-3 py-1 uppercase tracking-wider flex items-center gap-1.5 shadow-xs">
+                <Sparkles className="w-3.5 h-3.5 text-amber-500 animate-spin" />
+                VOTE, POST & MATCH TASTE 🌸
+              </span>
+            </motion.div>
           </div>
 
           {/* Two CTAs Fighting for Attention with High Density shadows */}
@@ -2696,6 +2835,8 @@ export default function App() {
         onLogout={handleLogout}
         onUpdatePreferences={handleUpdatePreferences}
         onUpgradePremium={handleUpgradeToPremium}
+        onUpdateAvatarUrl={handleUpdateAvatarUrl}
+        onUpdateProfile={handleUpdateProfile}
       />
 
       {/* 7. PROFILE COMPLETE ONBOARDING FORM */}
@@ -2721,6 +2862,29 @@ export default function App() {
         onBlock={handleBlockUser}
         onUnblock={handleUnblockUser}
         polls={polls}
+        allProfiles={allProfiles}
+        onSelectProfile={(p) => setSelectedProfile(p)}
+        onOpenTasteMatcher={(target) => {
+          setSelectedProfile(null);
+          setTasteMatcherTarget(target);
+          setIsTasteMatcherOpen(true);
+        }}
+      />
+
+      {/* 8.5 Two-Way Taste Matcher Modal */}
+      <TasteMatcherModal
+        isOpen={isTasteMatcherOpen}
+        onClose={() => {
+          setIsTasteMatcherOpen(false);
+          setTasteMatcherTarget(null);
+        }}
+        currentUser={currentUser}
+        allProfiles={allProfiles}
+        polls={polls}
+        initialTargetUser={tasteMatcherTarget}
+        onOpenDirectChat={(friendId, friendUsername) => {
+          window.dispatchEvent(new CustomEvent('open-combat-comms', { detail: { friendId, friendUsername } }));
+        }}
       />
 
       {/* 9. Share / Transmit Stream Modal */}
@@ -2789,9 +2953,9 @@ export default function App() {
               </div>
 
               {/* Tagline of Notification Center */}
-              <div className="bg-gray-50 border-b border-gray-100 p-3 text-center shrink-0">
-                <span className="font-mono text-[9px] text-shonen-orange font-bold uppercase tracking-wider">
-                  chicapola is the besto Freindo 🔪🎀
+              <div className="bg-pink-50 border-b border-pink-100 p-2.5 text-center shrink-0">
+                <span className="font-mono text-[9px] text-pink-600 font-black uppercase tracking-wider flex items-center justify-center gap-1.5">
+                  ✨ ANIME TASTE ARENA • NEURAL COMMS & MENTIONS 🌸
                 </span>
               </div>
 
