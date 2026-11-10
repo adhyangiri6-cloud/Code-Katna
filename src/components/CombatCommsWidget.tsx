@@ -788,56 +788,59 @@ export default function CombatCommsWidget({
             sounds.playSelect();
             setIsOpen(!isOpen);
           }}
-          className={`px-5 py-3.5 border-2 font-mono text-xs font-black uppercase tracking-wider flex items-center gap-2 shadow-lg cursor-pointer rounded-none relative overflow-visible transition-all duration-300 ${
+          className={`px-5 py-3.5 rounded-full font-bold text-xs tracking-wide flex items-center gap-2.5 shadow-[0_8px_25px_rgba(255,101,132,0.35)] cursor-pointer relative overflow-visible transition-all duration-300 border-2 ${
             isOpen 
-              ? 'bg-black border-black text-white' 
-              : 'bg-white border-black text-black'
+              ? 'bg-gray-900 border-gray-900 text-white' 
+              : 'bg-gradient-to-r from-pink-500 to-rose-400 border-white text-white'
           }`}
-          style={{ clipPath: 'polygon(0 0, 100% 0, 92% 100%, 0% 100%)' }}
         >
           {/* Pulsing state indicator */}
           <span className={`w-2.5 h-2.5 rounded-full shrink-0 ${
-            isOpen ? 'bg-white animate-ping' : 'bg-shonen-orange animate-pulse'
+            isOpen ? 'bg-pink-300 animate-ping' : 'bg-white animate-pulse'
           }`} />
           
-          <span>{isOpen ? 'CLOSE COMMS' : '📡 COMBAT COMMS'}</span>
+          <span className="flex items-center gap-1.5">
+            {isOpen ? '✕ Close Chat' : '💌 Messages & Chat'}
+          </span>
           
-          {/* Main Comms Red Badge Indicator showing total unread messages & beams */}
+          {/* Main Comms Badge */}
           {unreadCount > 0 && (
-            <span className="absolute -top-2 -left-2 bg-shonen-orange text-white text-[10px] font-black w-6 h-6 rounded-full flex items-center justify-center animate-pulse border-2 border-black shadow-md">
+            <span className="absolute -top-1.5 -left-1.5 bg-rose-500 text-white text-[10px] font-black w-6 h-6 rounded-full flex items-center justify-center animate-bounce border-2 border-white shadow-md">
               {unreadCount}
             </span>
           )}
         </motion.button>
       </div>
 
-      {/* Slide-out Terminal Panel - REDESIGNED INSTAGRAM STYLE */}
+      {/* Slide-out Chat Panel - ADORABLE KAWAII MESSENGER */}
       <AnimatePresence>
         {isOpen && (
           <motion.div
-            initial={{ opacity: 0, y: 100, scale: 0.95 }}
+            initial={{ opacity: 0, y: 80, scale: 0.96 }}
             animate={{ opacity: 1, y: 0, scale: 1 }}
-            exit={{ opacity: 0, y: 100, scale: 0.95 }}
-            transition={{ type: 'spring', damping: 25, stiffness: 200 }}
-            className="fixed bottom-24 right-6 w-[calc(100%-2rem)] max-w-sm md:max-w-4xl md:w-[850px] h-[540px] md:h-[620px] bg-white border-4 border-black flex flex-col justify-between z-[90] shadow-2xl clip-cyber-card overflow-hidden text-gray-950"
+            exit={{ opacity: 0, y: 80, scale: 0.96 }}
+            transition={{ type: 'spring', damping: 25, stiffness: 220 }}
+            className="fixed bottom-24 right-6 w-[calc(100%-2rem)] max-w-sm md:max-w-4xl md:w-[850px] h-[540px] md:h-[620px] bg-white/98 backdrop-blur-md border-2 border-pink-200 rounded-3xl flex flex-col justify-between z-[90] shadow-[0_20px_60px_rgba(255,182,193,0.35)] overflow-hidden text-gray-800"
           >
-            {/* Caution stripes */}
-            <div className="absolute top-0 left-0 right-0 h-1.5 bg-[linear-gradient(45deg,#FF6B00_25%,#fff_25%,#fff_50%,#FF6B00_50%,#FF6B00_75%,#fff_75%,#fff)] bg-[size:16px_16px] z-10" />
+            {/* Cute top gradient stripe */}
+            <div className="absolute top-0 left-0 right-0 h-1.5 bg-gradient-to-r from-pink-400 via-rose-300 to-purple-400 z-10" />
 
             {/* Header - Shared across channels */}
-            <div className="p-4 bg-gray-50 border-b border-gray-200 flex justify-between items-center z-10 pt-5 shrink-0">
-              <div className="flex items-center gap-2">
-                <Terminal className="w-4 h-4 text-shonen-orange animate-pulse" />
+            <div className="p-4 bg-gradient-to-r from-pink-50/80 via-purple-50/40 to-pink-50/70 border-b border-pink-100 flex justify-between items-center z-10 pt-5 shrink-0">
+              <div className="flex items-center gap-2.5">
+                <div className="w-8 h-8 rounded-full bg-pink-100 flex items-center justify-center text-pink-600 shadow-xs">
+                  💌
+                </div>
                 <div className="min-w-0">
-                  <span className="font-mono text-[9px] text-gray-500 uppercase tracking-widest block">
-                    VOTE_ARENA // INSTAGRAM_MESSAGE_COLUMN
+                  <span className="text-[10px] text-pink-500 font-bold uppercase tracking-wider block">
+                    Velgre Messenger 🌸
                   </span>
-                  <span className="font-mono text-xs font-black text-gray-950 uppercase tracking-wider block">
+                  <span className="text-xs font-black text-gray-900 tracking-tight block">
                     {activeChannel 
                       ? activeChannel.id.startsWith('gc-')
-                        ? `SECURED SQUAD FEED: [${activeChannel.name.toUpperCase()}]`
-                        : `SECURED STREAM WITH @${activeChannel.username.toUpperCase()}`
-                      : 'CODENAME INBOX DIRECTORY'}
+                        ? `Squad Chat: ${activeChannel.name}`
+                        : `Chatting with @${activeChannel.username}`
+                      : 'Direct Messages & Squads'}
                   </span>
                 </div>
               </div>
@@ -847,11 +850,11 @@ export default function CombatCommsWidget({
                 {activeChannel && (
                   <button
                     onClick={() => handleDeleteChat(activeChannel.id, activeChannel.id.startsWith('gc-') ? activeChannel.name : activeChannel.username)}
-                    className="flex items-center gap-1 font-mono text-[8px] text-red-600 border border-red-200 hover:border-red-600 px-2 py-1 bg-red-50 hover:bg-red-600 hover:text-white uppercase font-black transition-all cursor-pointer rounded-xs"
-                    title={activeChannel.id.startsWith('gc-') ? "LEAVE SQUAD" : "ERASE LOG HISTORY"}
+                    className="flex items-center gap-1 text-[9px] text-rose-500 border border-rose-200 hover:border-rose-400 px-2.5 py-1 bg-white hover:bg-rose-50 rounded-full font-bold transition-all cursor-pointer shadow-xs"
+                    title={activeChannel.id.startsWith('gc-') ? "Leave Squad" : "Clear Chat"}
                   >
                     <Trash2 className="w-3 h-3" />
-                    <span className="hidden sm:inline">{activeChannel.id.startsWith('gc-') ? "LEAVE SQUAD" : "ERASE FEED"}</span>
+                    <span className="hidden sm:inline">{activeChannel.id.startsWith('gc-') ? "Leave" : "Clear"}</span>
                   </button>
                 )}
 
@@ -860,9 +863,9 @@ export default function CombatCommsWidget({
                     sounds.playTick();
                     setIsOpen(false);
                   }}
-                  className="p-1 border border-gray-200 hover:border-shonen-orange hover:text-shonen-orange transition-colors text-gray-500"
+                  className="w-8 h-8 rounded-full bg-white border border-pink-200 hover:border-pink-300 hover:bg-pink-50 text-gray-500 hover:text-pink-600 flex items-center justify-center transition-all shadow-xs cursor-pointer"
                 >
-                  <X className="w-3.5 h-3.5" />
+                  <X className="w-4 h-4" />
                 </button>
               </div>
             </div>
@@ -1227,16 +1230,16 @@ export default function CombatCommsWidget({
                 }`}
               >
                 {!activeChannel ? (
-                  /* PLACEHOLDER: NO CHAT LINK CHOSEN (Desktop only since mobile hides this block when no chat) */
-                  <div className="flex-1 flex flex-col justify-center items-center text-center p-8 bg-gray-50/40">
-                    <div className="w-16 h-16 rounded-full bg-shonen-orange/5 border-2 border-dashed border-shonen-orange/30 flex items-center justify-center mb-4">
-                      <MessageSquare className="w-8 h-8 text-shonen-orange/50 animate-bounce" style={{ animationDuration: '3s' }} />
+                  /* PLACEHOLDER: NO CHAT CHOSEN */
+                  <div className="flex-1 flex flex-col justify-center items-center text-center p-8 bg-gradient-to-b from-pink-50/20 via-purple-50/10 to-pink-50/30">
+                    <div className="w-16 h-16 rounded-full bg-pink-100/80 border-2 border-dashed border-pink-300 flex items-center justify-center mb-4 shadow-xs">
+                      <MessageSquare className="w-8 h-8 text-pink-400 animate-bounce" style={{ animationDuration: '3s' }} />
                     </div>
-                    <h4 className="font-mono text-sm font-black text-gray-900 uppercase tracking-wide">
-                      NEURAL TUNNEL OFFLINE
+                    <h4 className="text-base font-extrabold text-gray-800 tracking-tight">
+                      No Chat Selected 🌸
                     </h4>
-                    <p className="font-mono text-[10px] text-gray-400 uppercase mt-2 max-w-[280px] leading-relaxed">
-                      Select an active mutually following operator link from the left inbox column to initiate instant secured signal transmissions.
+                    <p className="text-xs text-pink-500/80 mt-2 max-w-[280px] leading-relaxed font-medium">
+                      Select a friend or squad on the left to send sweet messages, anime GIFs, and cute stickers!
                     </p>
                   </div>
                 ) : (
@@ -1244,21 +1247,21 @@ export default function CombatCommsWidget({
                   <div className="flex-1 flex flex-col h-full justify-between overflow-hidden">
                     
                     {/* Header Controls for Mobile and quick actions */}
-                    <div className="p-2.5 bg-gray-50 border-b border-gray-200 flex justify-between items-center shrink-0">
+                    <div className="p-3 bg-pink-50/40 border-b border-pink-100 flex justify-between items-center shrink-0">
                       <button
                         onClick={() => {
                           sounds.playTick();
                           setActiveChannel(null);
                         }}
-                        className="md:hidden font-mono text-[8px] text-shonen-orange border border-shonen-orange/30 px-2 py-1 bg-white hover:bg-shonen-orange hover:text-white uppercase tracking-widest font-black transition-all cursor-pointer"
+                        className="md:hidden text-xs text-pink-600 border border-pink-200 px-3 py-1 bg-white hover:bg-pink-100 rounded-full font-bold transition-all cursor-pointer shadow-xs"
                       >
-                        [ BACK TO INBOX ]
+                        ← Back
                       </button>
                       
-                      <div className="hidden md:flex items-center gap-1.5">
-                        <div className="w-2.5 h-2.5 rounded-full bg-emerald-500 animate-pulse" />
-                        <span className="font-mono text-[8px] text-gray-500 uppercase font-black">
-                          TUNNEL ENCRYPTED // ACTIVE_FEED
+                      <div className="hidden md:flex items-center gap-2">
+                        <div className="w-2.5 h-2.5 rounded-full bg-emerald-400 animate-pulse" />
+                        <span className="text-xs text-gray-600 font-bold">
+                          🌸 Active Connection
                         </span>
                       </div>
 
@@ -1267,26 +1270,28 @@ export default function CombatCommsWidget({
                           sounds.playSelect();
                           onOpenProfile(activeChannel);
                         }}
-                        className="font-mono text-[8px] text-black border border-black px-2 py-1 bg-white hover:bg-black hover:text-white uppercase tracking-widest font-black transition-all cursor-pointer"
+                        className="text-xs text-pink-600 border border-pink-200 px-3 py-1 bg-white hover:bg-pink-50 rounded-full font-bold transition-all cursor-pointer shadow-xs"
                       >
-                        VIEW PROFILE
+                        View Profile 🌸
                       </button>
                     </div>
 
                     {/* Messages Scroll Area */}
-                    <div className="flex-1 overflow-y-auto p-4 space-y-4 scrollbar-thin bg-white">
+                    <div className="flex-1 overflow-y-auto p-4 space-y-3.5 scrollbar-thin bg-gradient-to-b from-white via-pink-50/10 to-white">
                       {loadingMsgs ? (
-                        <div className="h-full flex justify-center items-center font-mono text-[10px] text-gray-400 uppercase animate-pulse">
-                          DECRYPTING CHASSIS TRANSMISSIONS...
+                        <div className="h-full flex justify-center items-center text-xs text-pink-400 font-medium animate-pulse">
+                          🌸 Loading messages...
                         </div>
                       ) : messages.length === 0 ? (
                         <div className="h-full flex flex-col justify-center items-center text-center p-6">
-                          <Terminal className="w-6 h-6 text-shonen-orange animate-spin mb-2" style={{ animationDuration: '6s' }} />
-                          <p className="font-mono text-[9px] text-gray-500 uppercase font-bold">
-                            SECURE FEED ESTABLISHED WITH @{activeChannel.username.toUpperCase()}
+                          <div className="w-12 h-12 rounded-full bg-pink-100 flex items-center justify-center text-xl mb-2 shadow-xs">
+                            💌
+                          </div>
+                          <p className="text-xs text-gray-800 font-bold">
+                            Chat started with @{activeChannel.username}
                           </p>
-                          <p className="font-mono text-[8px] text-gray-400 uppercase mt-1">
-                            Send text messages, animated GIFs, or expression stickers below.
+                          <p className="text-xs text-pink-400 mt-1">
+                            Say hi with a cute message or anime sticker below! 🌸
                           </p>
                         </div>
                       ) : (
@@ -1303,58 +1308,52 @@ export default function CombatCommsWidget({
                           return (
                             <div
                               key={m.id}
-                              className={`flex gap-2.5 max-w-[90%] items-start ${isSelf ? 'ml-auto flex-row-reverse' : 'mr-auto flex-row'}`}
+                              className={`flex gap-2 max-w-[85%] items-end ${isSelf ? 'ml-auto flex-row-reverse' : 'mr-auto flex-row'}`}
                             >
                               {/* Avatar Bubble */}
-                              <div className="w-6.5 h-6.5 rounded-full border border-gray-300 bg-gray-100 shrink-0 flex items-center justify-center overflow-hidden mt-1 shadow-xs">
+                              <div className="w-7 h-7 rounded-full border border-pink-200 bg-pink-50 shrink-0 flex items-center justify-center overflow-hidden mb-1 shadow-xs">
                                 {senderAvatarUrl ? (
                                   <img src={senderAvatarUrl} alt={m.sender_username} className="w-full h-full object-cover" referrerPolicy="no-referrer" />
                                 ) : (
-                                  <span className="text-[8px] font-mono font-black text-gray-600">
-                                    {m.sender_username.slice(0, 2).toUpperCase()}
+                                  <span className="text-[9px] font-bold text-pink-600">
+                                    🌸
                                   </span>
                                 )}
                               </div>
 
                               {/* Message bubble core */}
                               <div className={`flex flex-col ${isSelf ? 'items-end' : 'items-start'}`}>
-                                <span className="font-mono text-[7px] text-gray-400 uppercase mb-0.5">
-                                  {isSelf ? 'YOU' : m.sender_username.toUpperCase()} // {new Date(m.created_at).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })}
+                                <span className="text-[9px] text-pink-300 font-medium mb-1">
+                                  {isSelf ? 'You' : m.sender_username} &bull; {new Date(m.created_at).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })}
                                 </span>
                                 
                                 {mediaUrl ? (
                                   /* Image Media Rendering (GIFs & Stickers) */
                                   isSticker ? (
-                                    <div className="p-1 max-w-[140px] bg-white border border-gray-200 hover:scale-105 transition-transform duration-200 relative shadow-xs">
+                                    <div className="p-1 max-w-[130px] bg-white border border-pink-200 rounded-2xl hover:scale-105 transition-transform duration-200 relative shadow-xs">
                                       <img 
                                         src={mediaUrl} 
                                         alt="Sticker Expression" 
                                         referrerPolicy="no-referrer"
-                                        className="w-full h-auto object-contain"
+                                        className="w-full h-auto object-contain rounded-xl"
                                       />
-                                      <span className="absolute bottom-0 right-1 font-mono text-[5px] text-gray-300 uppercase select-none">
-                                        STICKER
-                                      </span>
                                     </div>
                                   ) : (
-                                    <div className="p-1 border-2 border-black max-w-[180px] bg-black/5 hover:scale-105 transition-transform duration-200 relative shadow-xs">
+                                    <div className="p-1 border border-pink-200 max-w-[180px] bg-white rounded-2xl hover:scale-105 transition-transform duration-200 relative shadow-xs overflow-hidden">
                                       <img 
                                         src={mediaUrl} 
                                         alt="Anime GIF" 
                                         referrerPolicy="no-referrer"
-                                        className="w-full h-auto object-cover"
+                                        className="w-full h-auto object-cover rounded-xl"
                                       />
-                                      <span className="absolute bottom-0.5 right-1 font-mono text-[5px] text-white/70 bg-black/50 px-1 uppercase select-none">
-                                        GIF_ANIME
-                                      </span>
                                     </div>
                                   )
                                 ) : (
                                   /* Text Message Rendering */
-                                  <div className={`p-2.5 font-mono text-xs uppercase leading-relaxed rounded-none border ${
+                                  <div className={`px-4 py-2.5 text-xs leading-relaxed transition-all shadow-xs ${
                                     isSelf 
-                                      ? 'bg-shonen-orange/10 border-shonen-orange/35 text-gray-950' 
-                                      : 'bg-gray-50 border-gray-200 text-gray-950'
+                                      ? 'bg-gradient-to-r from-pink-500 to-rose-400 text-white rounded-3xl rounded-br-xs' 
+                                      : 'bg-pink-50/80 border border-pink-200/80 text-gray-800 rounded-3xl rounded-bl-xs'
                                   }`}>
                                     {m.text}
                                   </div>
@@ -1374,23 +1373,23 @@ export default function CombatCommsWidget({
                           initial={{ height: 0, opacity: 0 }}
                           animate={{ height: 'auto', opacity: 1 }}
                           exit={{ height: 0, opacity: 0 }}
-                          className="bg-gray-50 border-t border-gray-200 flex flex-col shrink-0 overflow-hidden"
+                          className="bg-pink-50/50 border-t border-pink-100 flex flex-col shrink-0 overflow-hidden"
                         >
                           {/* Media drawer category buttons */}
-                          <div className="flex border-b border-gray-200">
+                          <div className="flex border-b border-pink-100">
                             <button
                               type="button"
                               onClick={() => {
                                 sounds.playTick();
                                 setMediaTab('GIF');
                               }}
-                              className={`flex-1 py-2 font-mono text-[9px] font-black uppercase text-center border-r border-gray-200 ${
+                              className={`flex-1 py-2 text-xs font-bold uppercase text-center border-r border-pink-100 transition-colors ${
                                 mediaTab === 'GIF' 
-                                  ? 'bg-shonen-orange text-white' 
-                                  : 'bg-gray-50 text-gray-500 hover:text-black'
+                                  ? 'bg-gradient-to-r from-pink-500 to-rose-400 text-white' 
+                                  : 'bg-white/60 text-pink-500 hover:bg-pink-100'
                               }`}
                             >
-                              ⚡ ACTION ANIME GIFs
+                              ⚡ Anime GIFs
                             </button>
                             <button
                               type="button"
@@ -1398,13 +1397,13 @@ export default function CombatCommsWidget({
                                 sounds.playTick();
                                 setMediaTab('STICKER');
                               }}
-                              className={`flex-1 py-2 font-mono text-[9px] font-black uppercase text-center ${
+                              className={`flex-1 py-2 text-xs font-bold uppercase text-center transition-colors ${
                                 mediaTab === 'STICKER' 
-                                  ? 'bg-shonen-orange text-white' 
-                                  : 'bg-gray-50 text-gray-500 hover:text-black'
+                                  ? 'bg-gradient-to-r from-pink-500 to-rose-400 text-white' 
+                                  : 'bg-white/60 text-pink-500 hover:bg-pink-100'
                               }`}
                             >
-                              🌸 CHIBI EXPRESSIONS
+                              🌸 Chibi Stickers
                             </button>
                           </div>
 
@@ -1416,10 +1415,10 @@ export default function CombatCommsWidget({
                                   key={gif.name}
                                   type="button"
                                   onClick={() => handleSendMedia(gif.url, 'GIF')}
-                                  className="border border-gray-200 hover:border-shonen-orange p-1 hover:scale-105 transition-all bg-gray-50 flex flex-col justify-between h-20 overflow-hidden"
+                                  className="border border-pink-100 hover:border-pink-300 rounded-xl p-1 hover:scale-105 transition-all bg-pink-50/30 flex flex-col justify-between h-20 overflow-hidden cursor-pointer"
                                 >
-                                  <img src={gif.url} alt={gif.name} className="w-full h-12 object-cover" referrerPolicy="no-referrer" />
-                                  <span className="font-mono text-[5.5px] font-black text-gray-500 uppercase tracking-tighter truncate block w-full">
+                                  <img src={gif.url} alt={gif.name} className="w-full h-12 object-cover rounded-lg" referrerPolicy="no-referrer" />
+                                  <span className="text-[7px] font-bold text-pink-500 truncate block w-full mt-0.5">
                                     {gif.name}
                                   </span>
                                 </button>
@@ -1430,10 +1429,10 @@ export default function CombatCommsWidget({
                                   key={stk.name}
                                   type="button"
                                   onClick={() => handleSendMedia(stk.url, 'STICKER')}
-                                  className="border border-gray-200 hover:border-shonen-orange p-1 hover:scale-105 transition-all bg-gray-50 flex flex-col justify-between h-20 overflow-hidden"
+                                  className="border border-pink-100 hover:border-pink-300 rounded-xl p-1 hover:scale-105 transition-all bg-pink-50/30 flex flex-col justify-between h-20 overflow-hidden cursor-pointer"
                                 >
                                   <img src={stk.url} alt={stk.name} className="w-full h-12 object-contain" referrerPolicy="no-referrer" />
-                                  <span className="font-mono text-[5.5px] font-black text-gray-500 uppercase tracking-tighter truncate block w-full">
+                                  <span className="text-[7px] font-bold text-pink-500 truncate block w-full mt-0.5">
                                     {stk.name}
                                   </span>
                                 </button>
@@ -1445,7 +1444,7 @@ export default function CombatCommsWidget({
                     </AnimatePresence>
 
                     {/* Chat Input form bar with GIF/Sticker toggle */}
-                    <form onSubmit={handleSendMessage} className="p-2.5 bg-gray-50 border-t border-gray-200 flex gap-2 shrink-0">
+                    <form onSubmit={handleSendMessage} className="p-3 bg-pink-50/40 border-t border-pink-100 flex gap-2 shrink-0">
                       
                       {/* Toggle stickers panel button */}
                       <button
@@ -1454,29 +1453,29 @@ export default function CombatCommsWidget({
                           sounds.playTick();
                           setShowMediaDrawer(!showMediaDrawer);
                         }}
-                        className={`px-3 border-2 border-black font-mono font-black uppercase text-[10px] transition-all flex items-center justify-center gap-1 cursor-pointer ${
+                        className={`px-3 py-2 rounded-full border border-pink-200 text-xs font-bold transition-all flex items-center justify-center gap-1.5 cursor-pointer shadow-xs ${
                           showMediaDrawer 
-                            ? 'bg-black text-white' 
-                            : 'bg-white hover:bg-gray-100 text-black'
+                            ? 'bg-gradient-to-r from-pink-500 to-rose-400 text-white border-pink-400' 
+                            : 'bg-white hover:bg-pink-50 text-pink-600'
                         }`}
-                        title="TOGGLE STICKERS / GIFs"
+                        title="Toggle Stickers / GIFs"
                       >
-                        <Smile className="w-4 h-4 text-shonen-orange shrink-0" />
-                        <span className="hidden sm:inline">GIF/STICKER</span>
+                        <Smile className="w-4 h-4 text-pink-500 shrink-0" />
+                        <span className="hidden sm:inline">Stickers</span>
                       </button>
 
                       <input
                         type="text"
                         value={msgInput}
                         onChange={(e) => setMsgInput(e.target.value)}
-                        placeholder={showMediaDrawer ? "Select a sticker above or enter message..." : "ENTER TRANSMISSION PACKETS..."}
-                        className="flex-1 bg-white border-2 border-gray-200 focus:border-shonen-orange px-2.5 py-2 font-mono text-xs focus:outline-none placeholder-gray-400 text-gray-950 uppercase"
+                        placeholder={showMediaDrawer ? "Choose a cute sticker or type message..." : "Type a sweet message... 🌸"}
+                        className="flex-1 bg-white border border-pink-200 focus:border-pink-400 focus:ring-2 focus:ring-pink-200/50 rounded-full px-4 py-2 text-xs focus:outline-none placeholder-pink-300 text-gray-800 transition-all shadow-inner"
                       />
                       
                       <button
                         type="submit"
                         disabled={!msgInput.trim()}
-                        className="px-4 bg-shonen-orange hover:bg-black text-white border-2 border-black font-mono font-black uppercase text-xs transition-colors flex items-center justify-center shrink-0 cursor-pointer disabled:opacity-40"
+                        className="px-4 py-2 bg-gradient-to-r from-pink-500 to-rose-400 hover:from-pink-600 hover:to-rose-500 text-white rounded-full font-bold text-xs transition-all flex items-center justify-center shrink-0 cursor-pointer disabled:opacity-40 shadow-xs active:scale-95"
                       >
                         <Send className="w-3.5 h-3.5" />
                       </button>

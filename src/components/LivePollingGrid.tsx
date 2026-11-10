@@ -51,9 +51,9 @@ function StickmanFight({ kick }: { kick: 'A' | 'B' | null }) {
         {kick === null && (
           <>
             {/* Ambient Sparring State */}
-            {/* Left Stickman (Black) */}
-            <g className="animate-stick-left" stroke="#000000" strokeWidth="2.5" strokeLinecap="round" fill="none">
-              <circle cx="70" cy="18" r="5" fill="#000000" />
+            {/* Left Stickman (Strawberry Pink) */}
+            <g className="animate-stick-left" stroke="#FF6584" strokeWidth="2.5" strokeLinecap="round" fill="none">
+              <circle cx="70" cy="18" r="5" fill="#FF6584" />
               <line x1="70" y1="23" x2="70" y2="38" />
               <line x1="70" y1="26" x2="82" y2="24" strokeWidth="2" />
               <line x1="70" y1="26" x2="58" y2="28" strokeWidth="2" />
@@ -61,9 +61,9 @@ function StickmanFight({ kick }: { kick: 'A' | 'B' | null }) {
               <line x1="70" y1="38" x2="78" y2="54" />
             </g>
 
-            {/* Right Stickman (Orange) */}
-            <g className="animate-stick-right" stroke="#FF6B00" strokeWidth="2.5" strokeLinecap="round" fill="none">
-              <circle cx="130" cy="18" r="5" fill="#FF6B00" />
+            {/* Right Stickman (Lavender Purple) */}
+            <g className="animate-stick-right" stroke="#9333EA" strokeWidth="2.5" strokeLinecap="round" fill="none">
+              <circle cx="130" cy="18" r="5" fill="#9333EA" />
               <line x1="130" y1="23" x2="130" y2="38" />
               <line x1="130" y1="26" x2="118" y2="24" strokeWidth="2" />
               <line x1="130" y1="26" x2="142" y2="28" strokeWidth="2" />
@@ -239,22 +239,22 @@ export default function LivePollingGrid({
   const getCategoryIcon = (category: string) => {
     switch (category) {
       case 'CLASSROOM':
-        return <GraduationCap className="w-4 h-4 text-shonen-blue" />;
+        return <GraduationCap className="w-3.5 h-3.5 text-pink-500" />;
       case 'POP-CULTURE':
-        return <Flame className="w-4 h-4 text-shonen-orange" />;
+        return <Sparkles className="w-3.5 h-3.5 text-rose-500" />;
       default:
-        return <Compass className="w-4 h-4 text-shonen-yellow" />;
+        return <Compass className="w-3.5 h-3.5 text-purple-500" />;
     }
   };
 
   const getCategoryColor = (category: string) => {
     switch (category) {
       case 'CLASSROOM':
-        return 'text-shonen-blue bg-shonen-blue/10 border-shonen-blue/20';
+        return 'text-pink-600 bg-pink-50 border-pink-200';
       case 'POP-CULTURE':
-        return 'text-shonen-orange bg-shonen-orange/10 border-shonen-orange/20';
+        return 'text-rose-600 bg-rose-50 border-rose-200';
       default:
-        return 'text-shonen-yellow bg-shonen-yellow/10 border-shonen-yellow/20';
+        return 'text-purple-600 bg-purple-50 border-purple-200';
     }
   };
 
@@ -262,10 +262,10 @@ export default function LivePollingGrid({
 
   const getAnimeThemeConfig = (hostName: string) => {
     return {
-      rank: 'VELGRE VERIFIED HOST // ARENA OP',
-      colorClass: 'border-shonen-orange text-shonen-orange bg-shonen-orange/5',
-      glowColor: 'rgba(255, 107, 0, 0.4)',
-      avatarSymbol: '🔥', // Velgre Flame Symbol
+      rank: 'KAWAII CREATOR // VERIFIED 🌸',
+      colorClass: 'border-pink-200 text-pink-600 bg-pink-50',
+      glowColor: 'rgba(255, 101, 132, 0.3)',
+      avatarSymbol: '🌸',
       animeClass: 'Velgre'
     };
   };
@@ -318,59 +318,59 @@ export default function LivePollingGrid({
     <div id={gridId} className="relative w-full max-w-4xl mx-auto px-4 py-8 z-10">
       
       {/* SECTION HEADER & CONTROL BAR */}
-      <div className="flex flex-col md:flex-row justify-between items-start md:items-end mb-8 gap-4 pb-4 border-b border-gray-200">
+      <div className="flex flex-col md:flex-row justify-between items-start md:items-end mb-8 gap-4 pb-4 border-b border-pink-100">
         <div>
-          <div className="inline-flex items-center gap-2 bg-black border border-shonen-orange/40 text-shonen-orange text-[10px] font-black px-3 py-1 uppercase tracking-widest clip-diagonal-reverse mb-3">
+          <div className="inline-flex items-center gap-2 bg-pink-100/80 border border-pink-200 text-pink-600 text-xs font-bold px-3 py-1 rounded-full mb-3 shadow-xs">
             {badgeIcon}
             {badgeText}
           </div>
-          <h2 className="text-xl md:text-3xl font-black text-gray-900 tracking-tighter uppercase font-sans flex items-center gap-2">
-            <Sword className="w-5 h-5 text-shonen-orange animate-pulse" />
+          <h2 className="text-2xl md:text-3xl font-extrabold text-gray-900 tracking-tight flex items-center gap-2.5">
+            <Sparkles className="w-6 h-6 text-pink-500 animate-spin-slow" />
             {title}
           </h2>
-          <p className="text-gray-500 font-mono text-[10px] mt-1 uppercase tracking-wider">
+          <p className="text-gray-500 text-xs mt-1 font-medium tracking-wide">
             {tagline}
           </p>
         </div>
 
-        {/* Instagram style View Mode Toggle inside component as fallback */}
+        {/* View Mode Toggle */}
         {onToggleViewMode && (
-          <div className="flex items-center bg-gray-100 border border-gray-200 rounded-lg p-1 shrink-0">
+          <div className="flex items-center bg-white/80 border border-pink-200/80 rounded-full p-1 shrink-0 shadow-xs backdrop-blur-xs">
             <button
               onClick={() => {
                 sounds.playTick();
                 onToggleViewMode('FEED');
               }}
-              className={`px-3 py-1.5 rounded-md flex items-center gap-1.5 text-xs font-mono font-bold transition-all ${
+              className={`px-3.5 py-1.5 rounded-full flex items-center gap-1.5 text-xs font-bold transition-all ${
                 viewMode === 'FEED'
-                  ? 'bg-shonen-orange text-white font-extrabold shadow-sm'
-                  : 'text-gray-500 hover:text-black'
+                  ? 'bg-gradient-to-r from-pink-500 to-rose-400 text-white shadow-sm'
+                  : 'text-gray-500 hover:text-pink-600'
               }`}
             >
-              <List className="w-4 h-4" />
-              FEED
+              <List className="w-3.5 h-3.5" />
+              Feed
             </button>
             <button
               onClick={() => {
                 sounds.playTick();
                 onToggleViewMode('GRID');
               }}
-              className={`px-3 py-1.5 rounded-md flex items-center gap-1.5 text-xs font-mono font-bold transition-all ${
+              className={`px-3.5 py-1.5 rounded-full flex items-center gap-1.5 text-xs font-bold transition-all ${
                 viewMode === 'GRID'
-                  ? 'bg-shonen-orange text-white font-extrabold shadow-sm'
-                  : 'text-gray-500 hover:text-black'
+                  ? 'bg-gradient-to-r from-pink-500 to-rose-400 text-white shadow-sm'
+                  : 'text-gray-500 hover:text-pink-600'
               }`}
             >
-              <Grid3X3 className="w-4 h-4" />
-              GRID
+              <Grid3X3 className="w-3.5 h-3.5" />
+              Grid
             </button>
           </div>
         )}
       </div>
 
       {polls.length === 0 ? (
-        <div className="text-center font-mono text-xs text-gray-400 py-16 border-2 border-dashed border-gray-200 uppercase">
-          {emptyMessage}
+        <div className="text-center font-medium text-sm text-pink-400 py-16 bg-white/70 rounded-3xl border-2 border-dashed border-pink-200">
+          🌸 {emptyMessage}
         </div>
       ) : viewMode === 'GRID' ? (
         
@@ -391,7 +391,7 @@ export default function LivePollingGrid({
                 initial={{ opacity: 0, scale: 0.9 }}
                 animate={{ opacity: 1, scale: 1 }}
                 transition={{ delay: idx * 0.03 }}
-                className="aspect-square relative group bg-white border border-gray-200 hover:border-shonen-orange cursor-pointer overflow-hidden transition-all duration-300 manga-panel"
+                className="aspect-square relative group bg-white/95 border-2 border-pink-100 hover:border-pink-300 rounded-3xl cursor-pointer overflow-hidden transition-all duration-300 shadow-[0_6px_20px_rgba(255,182,193,0.15)] hover:shadow-[0_10px_30px_rgba(255,182,193,0.25)] hover:-translate-y-0.5"
                 onClick={() => {
                   sounds.playSelect();
                   // Switch back to feed and focus on this poll
@@ -404,58 +404,54 @@ export default function LivePollingGrid({
                   }
                 }}
               >
-                {/* Comic page screentone / background layout */}
-                <div className="absolute inset-0 manga-screentone opacity-[0.06]" />
-                <div className="absolute inset-0 manga-speedlines opacity-[0.03]" />
-                
                 {/* Featured / Spotlight visual mark */}
                 {poll.is_spotlight && (
-                  <div className="absolute top-2 left-2 z-15 bg-shonen-orange text-white text-[8px] font-black px-1 py-0.5 rounded-sm uppercase tracking-tighter">
-                    SPOTLIGHT
+                  <div className="absolute top-2.5 left-2.5 z-15 bg-gradient-to-r from-pink-500 to-rose-400 text-white text-[9px] font-bold px-2 py-0.5 rounded-full uppercase tracking-wider shadow-xs">
+                    ✨ Spotlight
                   </div>
                 )}
 
                 {/* Matchup content display */}
-                <div className="absolute inset-0 flex flex-col justify-between p-3 z-10">
+                <div className="absolute inset-0 flex flex-col justify-between p-4 z-10 bg-gradient-to-b from-white/90 via-pink-50/20 to-pink-50/50">
                   <div className="flex justify-between items-center">
-                    <span className="text-[7px] font-mono font-bold text-gray-500 uppercase tracking-widest bg-gray-100 px-1 py-0.5">
+                    <span className="text-[8px] font-bold text-pink-600 uppercase tracking-wider bg-pink-100/80 px-2 py-0.5 rounded-full">
                       {poll.category}
                     </span>
-                    <span className="text-[14px] font-black" style={{ color: animeConfig.glowColor }}>
-                      {animeConfig.avatarSymbol}
+                    <span className="text-base font-black">
+                      🌸
                     </span>
                   </div>
 
                   {/* VS clash title text in center */}
                   <div className="my-auto text-center px-1">
-                    <p className="text-[10px] md:text-xs font-mono text-gray-600 font-bold uppercase truncate">
-                      {poll.options[0]?.text || 'CONTENDER A'}
+                    <p className="text-xs font-bold text-gray-700 truncate">
+                      {poll.options[0]?.text || 'Choice A'}
                     </p>
-                    <p className="text-shonen-orange text-xs md:text-sm font-black italic my-0.5 tracking-tighter">
-                      VS
-                    </p>
-                    <p className="text-[10px] md:text-xs font-mono text-gray-600 font-bold uppercase truncate">
-                      {poll.options[1]?.text || 'CONTENDER B'}
+                    <div className="inline-block my-1 bg-gradient-to-r from-pink-500 to-rose-400 text-white text-[10px] font-black px-2 py-0.5 rounded-full shadow-xs">
+                      VS 💖
+                    </div>
+                    <p className="text-xs font-bold text-gray-700 truncate">
+                      {poll.options[1]?.text || 'Choice B'}
                     </p>
                   </div>
 
-                  <div className="truncate text-left text-[9px] font-mono font-black text-gray-600 uppercase leading-none border-t border-gray-100 pt-1.5">
+                  <div className="truncate text-left text-[10px] font-bold text-gray-800 border-t border-pink-100/70 pt-2">
                     {poll.title}
                   </div>
                 </div>
 
-                {/* Real Instagram Hover Statistics Overlay */}
-                <div className="absolute inset-0 bg-black/80 flex items-center justify-center gap-4 opacity-0 group-hover:opacity-100 transition-opacity duration-300 z-20">
-                  <div className="flex items-center gap-1 text-shonen-orange font-mono font-bold text-sm" title={`${totalLikes} Combat Likes`}>
-                    <Flame className="w-5 h-5 text-shonen-orange animate-pulse fill-shonen-orange" />
+                {/* Hover Statistics Overlay */}
+                <div className="absolute inset-0 bg-pink-900/80 backdrop-blur-xs flex items-center justify-center gap-4 opacity-0 group-hover:opacity-100 transition-opacity duration-300 z-20">
+                  <div className="flex items-center gap-1.5 text-pink-200 font-bold text-xs" title={`${totalLikes} Loves`}>
+                    <Heart className="w-4 h-4 text-pink-300 fill-pink-300 animate-pulse" />
                     <span>{totalLikes}</span>
                   </div>
-                  <div className="flex items-center gap-1 text-shonen-blue font-mono font-bold text-sm" title={`${totalVotes} Total Votes`}>
-                    <Users className="w-5 h-5 text-shonen-blue" />
+                  <div className="flex items-center gap-1.5 text-purple-200 font-bold text-xs" title={`${totalVotes} Total Votes`}>
+                    <Users className="w-4 h-4 text-purple-300" />
                     <span>{totalVotes}</span>
                   </div>
-                  <div className="flex items-center gap-1 text-emerald-400 font-mono font-bold text-sm" title={`${pollComments.length} Comments`}>
-                    <MessageSquare className="w-5 h-5 text-emerald-400" />
+                  <div className="flex items-center gap-1.5 text-rose-200 font-bold text-xs" title={`${pollComments.length} Comments`}>
+                    <MessageSquare className="w-4 h-4 text-rose-300" />
                     <span>{pollComments.length}</span>
                   </div>
                 </div>
@@ -504,50 +500,50 @@ export default function LivePollingGrid({
                 whileInView={{ opacity: 1, y: 0 }}
                 viewport={{ once: true, margin: '-100px' }}
                 transition={{ type: 'spring', stiffness: 100, damping: 18 }}
-                className="bg-white border-2 border-black rounded-none overflow-hidden manga-panel relative"
+                className="bg-white/95 backdrop-blur-md border-2 border-pink-100 rounded-3xl overflow-hidden shadow-[0_12px_40px_rgba(255,182,193,0.18)] hover:shadow-[0_16px_50px_rgba(255,182,193,0.26)] relative transition-all duration-300"
               >
                 {/* 1. Feed Item Header */}
-                <div className="flex items-center justify-between p-4 border-b border-gray-200 bg-gray-50">
+                <div className="flex items-center justify-between p-4 border-b border-pink-100/70 bg-gradient-to-r from-pink-50/60 via-purple-50/30 to-pink-50/40">
                   <div className="flex items-center gap-3">
-                    {/* Glowing Shonen Avatar Ring */}
+                    {/* Glowing Kawaii Avatar Ring */}
                     <div 
-                      className="w-10 h-10 rounded-full flex items-center justify-center text-black font-mono font-black border-2 text-base shadow-sm relative shrink-0"
+                      className="w-11 h-11 rounded-full flex items-center justify-center text-pink-700 font-bold border-2 text-base shadow-xs relative shrink-0"
                       style={{ 
-                        borderColor: isLiked ? '#FF6B00' : '#e5e7eb',
-                        boxShadow: isLiked ? `0 0 10px ${animeConfig.glowColor}` : 'none'
+                        borderColor: isLiked ? '#FF6584' : '#fbcfe8',
+                        boxShadow: isLiked ? `0 0 12px rgba(255,101,132,0.4)` : 'none'
                       }}
                     >
                       {/* Spinning story gradient ring around avatar */}
                       <div className="absolute inset-[-3px] rounded-full -z-10 insta-story-ring opacity-80" />
                       {/* Innermost circle container */}
-                      <div className="absolute inset-[1.5px] rounded-full bg-shonen-orange flex items-center justify-center text-white text-xs font-black overflow-hidden">
+                      <div className="absolute inset-[1.5px] rounded-full bg-gradient-to-tr from-pink-400 to-rose-400 flex items-center justify-center text-white text-xs font-black overflow-hidden shadow-inner">
                         {hostAvatarUrl ? (
                           <img src={hostAvatarUrl} alt={hostClean} className="w-full h-full object-cover" />
                         ) : (
-                          animeConfig.avatarSymbol
+                          '🌸'
                         )}
                       </div>
                     </div>
 
                     <div>
                       <div className="flex items-center gap-1.5">
-                        <span className="font-sans text-xs font-extrabold text-gray-900 tracking-tight uppercase hover:underline cursor-pointer flex items-center gap-1.5">
+                        <span className="font-sans text-xs font-black text-gray-800 tracking-tight hover:text-pink-600 transition-colors cursor-pointer flex items-center gap-1.5">
                           {hostAvatarUrl && (
-                            <img src={hostAvatarUrl} alt={`${hostClean} mini avatar`} className="w-4 h-4 rounded-full object-cover border border-black/10 shrink-0" />
+                            <img src={hostAvatarUrl} alt={`${hostClean} mini avatar`} className="w-4 h-4 rounded-full object-cover border border-pink-200 shrink-0" />
                           )}
                           {hostClean}
                         </span>
                         {isHostAdmin && (
-                          <Crown className="w-3.5 h-3.5 text-shonen-orange animate-bounce shrink-0" />
+                          <Crown className="w-3.5 h-3.5 text-amber-500 animate-bounce shrink-0" />
                         )}
                         {poll.is_spotlight && (
-                          <span className="bg-shonen-orange text-white font-sans text-[7px] px-1 font-black uppercase tracking-widest rounded-xs">
-                            SPOTLIGHT
+                          <span className="bg-gradient-to-r from-pink-500 to-rose-400 text-white font-sans text-[8px] px-2 py-0.5 font-bold uppercase tracking-wider rounded-full shadow-xs">
+                            ✨ Spotlight
                           </span>
                         )}
                       </div>
-                      <p className="font-mono text-[8px] text-gray-400 uppercase tracking-widest">
-                        {animeConfig.rank}
+                      <p className="font-mono text-[8px] text-pink-400 font-bold uppercase tracking-widest mt-0.5">
+                        🌸 {animeConfig.rank}
                       </p>
                     </div>
                   </div>
@@ -564,13 +560,13 @@ export default function LivePollingGrid({
                             onFollow(hostClean, hostClean);
                           }
                         }}
-                        className={`text-[9px] font-sans font-black uppercase px-2.5 py-1 rounded-sm transition-all tracking-wider cursor-pointer border ${
+                        className={`text-[10px] font-bold px-3 py-1 rounded-full transition-all tracking-wide cursor-pointer shadow-xs ${
                           isFollowingHost 
-                            ? 'bg-transparent text-gray-400 border-gray-200' 
-                            : 'bg-shonen-orange text-white border-shonen-orange font-extrabold hover:bg-black hover:border-black'
+                            ? 'bg-pink-50 text-pink-400 border border-pink-200 hover:bg-pink-100' 
+                            : 'bg-gradient-to-r from-pink-500 to-rose-400 text-white border-none font-bold hover:from-pink-600 hover:to-rose-500 active:scale-95'
                         }`}
                       >
-                        {isFollowingHost ? 'FOLLOWING' : 'FOLLOW'}
+                        {isFollowingHost ? 'Following 🌸' : '+ Follow'}
                       </button>
                     )}
 
@@ -578,9 +574,9 @@ export default function LivePollingGrid({
                     {currentUser?.id && poll.user_id && currentUser.id === poll.user_id && onDeletePoll && (
                       <button
                         onClick={() => onDeletePoll(poll.id, poll.user_id || '')}
-                        className="text-[9px] font-mono text-shonen-red hover:text-white border border-shonen-red/20 px-2 py-0.5 rounded-sm hover:bg-shonen-red transition-all cursor-pointer"
+                        className="text-[9px] font-bold text-rose-500 hover:text-rose-700 border border-rose-200 bg-rose-50/60 px-2.5 py-0.5 rounded-full transition-all cursor-pointer"
                       >
-                        PURGE
+                        Remove
                       </button>
                     )}
                   </div>
@@ -635,82 +631,81 @@ export default function LivePollingGrid({
                     </div>
                   </div>
                 ) : (
-                  <div className="relative aspect-square w-full bg-[#fcfbfc] flex flex-col justify-between overflow-hidden border-b border-gray-200 p-6">
-                    {/* Background Speedlines */}
-                    <div className="absolute inset-0 manga-screentone opacity-[0.08] z-0" />
-                    <div className="absolute inset-0 manga-speedlines opacity-[0.04] z-0" />
-                    
-                    {/* Ambient glowing vignette */}
-                    <div className="absolute inset-0 bg-gradient-to-t from-gray-100/10 via-transparent to-gray-50/10 pointer-events-none z-0" />
+                  <div className="relative aspect-square w-full bg-gradient-to-b from-pink-50/50 via-purple-50/30 to-pink-50/60 flex flex-col justify-between overflow-hidden border-b border-pink-100 p-6">
+                    {/* Soft pastel dots / ambient glowing vignette */}
+                    <div className="absolute inset-0 bg-radial-at-c from-white/60 via-transparent to-pink-100/20 pointer-events-none z-0" />
 
-                    {/* Top Bar of the image: categories and system tags */}
+                    {/* Top Bar of the image: categories and cute tags */}
                     <div className="z-10 flex justify-between items-center w-full">
-                      <span className={`font-mono text-[9px] font-black border px-2 py-0.5 rounded-sm uppercase flex items-center gap-1.5 ${getCategoryColor(poll.category)}`}>
+                      <span className={`text-[10px] font-bold border px-2.5 py-0.5 rounded-full uppercase flex items-center gap-1.5 shadow-xs ${getCategoryColor(poll.category)}`}>
                         {getCategoryIcon(poll.category)}
                         {poll.category}
                       </span>
-                      <span className="font-mono text-[8px] text-gray-400 tracking-widest uppercase">
-                        SYS_STREAM_ID // {poll.id.slice(0, 6).toUpperCase()}
+                      <span className="font-mono text-[9px] text-pink-400 font-semibold tracking-wider">
+                        ✨ #{poll.id.slice(0, 6).toUpperCase()}
                       </span>
                     </div>
 
-                    {/* Big Epic Title in Center */}
-                    <div className="z-10 text-center my-auto py-4">
-                      <span className="text-[9px] font-mono text-shonen-orange font-black uppercase tracking-[0.25em] block mb-1">
-                        「 決戦 : KESSEN MATCHUP 」
+                    {/* Big Cute Title in Center */}
+                    <div className="z-10 text-center my-auto py-3">
+                      <span className="text-[10px] font-bold text-pink-500 uppercase tracking-widest block mb-1">
+                        🌸 COMMUNITY POLL MATCHUP 🌸
                       </span>
-                      <h3 className="text-2xl sm:text-3xl font-black text-gray-950 uppercase tracking-tight leading-none px-2">
+                      <h3 className="text-2xl sm:text-3xl font-extrabold text-gray-900 tracking-tight leading-tight px-2">
                         {poll.title}
                       </h3>
-                      <p className="text-gray-600 text-xs font-sans mt-2 max-w-sm mx-auto opacity-95">
-                        {poll.description}
-                      </p>
+                      {poll.description && (
+                        <p className="text-gray-600 text-xs mt-2 max-w-sm mx-auto font-medium">
+                          {poll.description}
+                        </p>
+                      )}
                     </div>
 
                     {/* STICKMAN FIGHT ANIMATION */}
                     <StickmanFight kick={pollKicks[poll.id] || null} />
 
-                    {/* Character matchup representation details */}
+                    {/* Cute sticker icons */}
                     <div className="absolute inset-y-0 left-0 right-0 pointer-events-none z-5 flex items-center justify-between px-8">
-                      <div className="w-12 h-12 rounded-full border border-dashed border-gray-300 flex items-center justify-center text-xl font-bold bg-white/60 text-gray-400">
-                        ⚔️
+                      <div className="w-11 h-11 rounded-full border border-pink-200 bg-white/80 shadow-xs flex items-center justify-center text-lg">
+                        ✨
                       </div>
-                      <div className="w-12 h-12 rounded-full border border-dashed border-gray-300 flex items-center justify-center text-xl font-bold bg-white/60 text-gray-400">
-                        🛡️
+                      <div className="w-11 h-11 rounded-full border border-pink-200 bg-white/80 shadow-xs flex items-center justify-center text-lg">
+                        💖
                       </div>
                     </div>
 
                     {/* VS Symbol at bottom of stage overlay */}
                     <div className="z-10 text-center w-full pb-2">
-                      <span className="text-3xl font-black italic text-shonen-orange bg-white border-2 border-black px-4 py-1.5 inline-block transform -skew-x-12 shadow-sm">
-                        VS
+                      <span className="text-sm font-black text-white bg-gradient-to-r from-pink-500 to-rose-400 px-5 py-1.5 rounded-full shadow-md inline-flex items-center gap-1">
+                        <span>VS</span>
+                        <span>💖</span>
                       </span>
                     </div>
                   </div>
                 )}
 
-                {/* 3. Post Interaction Action Bar (Instagram style icons) */}
-                <div className="p-4 flex justify-between items-center bg-gray-50 border-b border-gray-100">
+                {/* 3. Post Interaction Action Bar */}
+                <div className="p-4 flex justify-between items-center bg-pink-50/30 border-b border-pink-100/70">
                   <div className="flex items-center gap-4">
-                    {/* Double-tap fire hype button */}
+                    {/* Double-tap heart hype button */}
                     <button
                       onClick={() => handleLike(poll.id)}
-                      className={`transition-transform hover:scale-110 active:scale-95 cursor-pointer flex items-center gap-1.5 ${
-                        isLiked ? 'text-shonen-orange' : 'text-gray-400 hover:text-shonen-orange'
+                      className={`transition-all hover:scale-115 active:scale-95 cursor-pointer flex items-center gap-1.5 ${
+                        isLiked ? 'text-pink-500' : 'text-gray-400 hover:text-pink-500'
                       }`}
-                      title={isLiked ? "Unlike Arena" : "Double Hype (Like Arena)"}
+                      title={isLiked ? "Unlike" : "Love this poll"}
                     >
-                      <Flame className={`w-6 h-6 ${isLiked ? 'fill-shonen-orange animate-bounce text-shonen-orange' : ''}`} />
-                      <span className="font-mono text-xs font-black">{totalLikes}</span>
+                      <Heart className={`w-6 h-6 transition-all ${isLiked ? 'fill-pink-500 text-pink-500 animate-pulse' : ''}`} />
+                      <span className="font-bold text-xs">{totalLikes}</span>
                     </button>
 
                     {/* Comments Toggle Balloon */}
                     <button
                       onClick={() => toggleComments(poll.id)}
-                      className={`transition-transform hover:scale-110 active:scale-95 cursor-pointer flex items-center gap-1 ${
-                        commentsOpen ? 'text-shonen-blue' : 'text-gray-400 hover:text-shonen-blue'
+                      className={`transition-all hover:scale-115 active:scale-95 cursor-pointer flex items-center gap-1 ${
+                        commentsOpen ? 'text-purple-600' : 'text-gray-400 hover:text-purple-600'
                       }`}
-                      title="View Arena Comms (Comments)"
+                      title="View Comments"
                     >
                       <MessageSquare className="w-6 h-6" />
                     </button>
@@ -723,7 +718,7 @@ export default function LivePollingGrid({
                             sounds.playSelect();
                             onTransmitPoll(poll);
                           }}
-                          className="transition-transform hover:scale-110 text-gray-400 hover:text-pink-600 cursor-pointer"
+                          className="transition-all hover:scale-115 text-gray-400 hover:text-pink-600 cursor-pointer"
                           title="Share to Instagram Stories"
                         >
                           <Instagram className="w-5.5 h-5.5" />
@@ -733,10 +728,10 @@ export default function LivePollingGrid({
                             sounds.playSelect();
                             onTransmitPoll(poll);
                           }}
-                          className="transition-transform hover:scale-110 text-gray-400 hover:text-shonen-orange cursor-pointer"
-                          title="Transmit / Share Stream"
+                          className="transition-all hover:scale-115 text-gray-400 hover:text-pink-500 cursor-pointer"
+                          title="Share Poll"
                         >
-                          <Send className="w-5.5 h-5.5 transform rotate-[-25deg] translate-y-[-1px]" />
+                          <Send className="w-5.5 h-5.5" />
                         </button>
                       </>
                     )}
@@ -762,26 +757,27 @@ export default function LivePollingGrid({
                 {/* 4. Captions, Statistics, and Inline Interactive Options */}
                 <div className="px-4 pb-4 space-y-4 pt-2">
                   {/* Likes / Votes statistics */}
-                  <div className="font-sans text-xs font-extrabold text-gray-900 uppercase tracking-tight flex items-center gap-3">
-                    <span className="flex items-center gap-1.5 text-shonen-orange font-mono">
-                      <Flame className="w-4 h-4 fill-shonen-orange text-shonen-orange" />
-                      <span>{totalLikes.toLocaleString()} LIKES</span>
+                  {/* Likes / Votes statistics */}
+                  <div className="text-xs font-bold text-gray-800 tracking-tight flex items-center gap-3">
+                    <span className="flex items-center gap-1.5 text-pink-600 font-bold">
+                      <Heart className="w-4 h-4 fill-pink-500 text-pink-500" />
+                      <span>{totalLikes.toLocaleString()} Loves</span>
                     </span>
-                    <span className="text-gray-300 font-bold">&bull;</span>
-                    <span className="flex items-center gap-1.5 text-gray-700 font-mono">
-                      <Users className="w-4 h-4 text-shonen-blue" />
-                      <span>{poll.totalVotes.toLocaleString()} VOTES</span>
+                    <span className="text-pink-200 font-bold">&bull;</span>
+                    <span className="flex items-center gap-1.5 text-purple-600 font-bold">
+                      <Users className="w-4 h-4 text-purple-500" />
+                      <span>{poll.totalVotes.toLocaleString()} Votes</span>
                     </span>
                   </div>
 
                   {/* Caption */}
-                  <div className="text-xs font-sans leading-relaxed text-gray-700">
-                    <span className="font-extrabold text-gray-950 uppercase mr-2">{hostClean}</span>
-                    <span>Hypes the decisive bout: "{poll.title}". Cast your chakra or haki to lock results!</span>
+                  <div className="text-xs leading-relaxed text-gray-600">
+                    <span className="font-extrabold text-gray-900 mr-2">{hostClean}</span>
+                    <span>"{poll.title}" &mdash; Tap your choice below to vote! 🌸</span>
                   </div>
 
-                  {/* INTERACTIVE POLL OPTIONS (Rendered like Fighting Game Energy Bars!) */}
-                  <div className="space-y-3 bg-gray-50 p-3.5 border border-gray-200">
+                  {/* INTERACTIVE POLL OPTIONS */}
+                  <div className="space-y-2.5 bg-pink-50/40 p-3.5 rounded-2xl border border-pink-100">
                     {poll.options.map((option, idx) => {
                       const optionTotal = poll.options.reduce((sum, o) => sum + o.votes, 0);
                       const percent = optionTotal > 0 ? ((option.votes / optionTotal) * 100).toFixed(1) : '0.0';
@@ -805,42 +801,42 @@ export default function LivePollingGrid({
 
                       // Assign colorful chakra gauges
                       const gaugeColor = idx === 0 
-                        ? 'bg-gradient-to-r from-shonen-orange to-shonen-yellow' 
-                        : 'bg-gradient-to-r from-shonen-blue to-shonen-purple';
+                        ? 'bg-gradient-to-r from-pink-400 to-rose-400' 
+                        : 'bg-gradient-to-r from-purple-400 to-pink-400';
 
                       return (
                         <div key={`feed-${poll.id}-opt-${idx}`} className="relative">
                           {hasVoted ? (
                             /* VOTED PROGRESS BAR */
-                            <div className={`relative h-11 border overflow-hidden flex items-center justify-between px-4 transition-all duration-300 ${
+                            <div className={`relative h-11 rounded-2xl border-2 overflow-hidden flex items-center justify-between px-4 transition-all duration-300 ${
                               isSelected 
-                                ? 'border-shonen-orange bg-shonen-orange/5' 
-                                : 'border-gray-200 bg-white'
+                                ? 'border-pink-400 bg-pink-50/50 shadow-xs' 
+                                : 'border-pink-100 bg-white/90'
                             }`}>
-                              {/* Glowing health bar energy gauge */}
+                              {/* Glowing energy gauge */}
                               <motion.div
                                 initial={{ width: 0 }}
                                 animate={{ width: `${percent}%` }}
                                 transition={{ type: 'spring', stiffness: 50, damping: 14 }}
-                                className={`absolute top-0 bottom-0 left-0 -z-0 opacity-20 ${gaugeColor}`}
+                                className={`absolute top-0 bottom-0 left-0 -z-0 opacity-25 ${gaugeColor}`}
                               />
                               
-                              <span className={`font-mono text-xs font-bold truncate pr-4 z-10 flex items-center gap-1.5 ${
-                                isSelected ? 'text-shonen-orange font-black' : 'text-gray-700'
+                              <span className={`text-xs font-bold truncate pr-4 z-10 flex items-center gap-1.5 ${
+                                isSelected ? 'text-pink-600 font-extrabold' : 'text-gray-700'
                               }`}>
-                                {isSelected && <CheckCircle className="w-3.5 h-3.5 text-shonen-orange flex-shrink-0" />}
-                                <span className="truncate">{option.text.toUpperCase()}</span>
+                                {isSelected && <CheckCircle className="w-3.5 h-3.5 text-pink-500 flex-shrink-0" />}
+                                <span className="truncate">{option.text}</span>
 
                                 {/* Voter profile picture mini-icons for people you follow */}
                                 {voterProfiles.length > 0 && (
-                                  <div className="flex items-center -space-x-1 overflow-hidden shrink-0 select-none ml-1.5 bg-white/65 p-0.5 rounded-full border border-black/10">
+                                  <div className="flex items-center -space-x-1 overflow-hidden shrink-0 select-none ml-1.5 bg-white/80 p-0.5 rounded-full border border-pink-200">
                                     {voterProfiles.map((prof) => (
                                       <img
                                         key={`${poll.id}-opt-${idx}-voter-${prof.id}`}
                                         src={prof.avatar_url || 'https://images.unsplash.com/photo-1535713875002-d1d0cf377fde?auto=format&fit=crop&w=80&q=80'}
                                         alt={prof.username}
                                         title={`${prof.username?.toUpperCase()} (followed) voted for this`}
-                                        className="w-4 h-4 rounded-full border border-black/30 object-cover shrink-0 bg-white"
+                                        className="w-4 h-4 rounded-full border border-pink-200 object-cover shrink-0 bg-white"
                                         onError={(e) => {
                                           e.currentTarget.src = 'https://images.unsplash.com/photo-1535713875002-d1d0cf377fde?auto=format&fit=crop&w=80&q=80';
                                         }}
@@ -850,8 +846,8 @@ export default function LivePollingGrid({
                                 )}
                               </span>
                               
-                              <span className={`font-mono text-xs font-black z-10 ${
-                                isSelected ? 'text-shonen-orange' : 'text-gray-500'
+                              <span className={`text-xs font-bold z-10 ${
+                                isSelected ? 'text-pink-600 font-extrabold' : 'text-gray-500'
                               }`}>
                                 {percent}%
                               </span>
@@ -860,20 +856,20 @@ export default function LivePollingGrid({
                             /* ACTIVE VOTING BUTTON */
                             <button
                               onClick={() => handleOptionVote(poll.id, idx)}
-                              className="w-full h-11 border-2 border-gray-200 hover:border-shonen-orange bg-white text-left font-sans text-xs font-black px-4 py-2 flex items-center justify-between transition-all duration-200 transform hover:translate-x-1 hover:bg-gray-50 cursor-pointer text-gray-800"
+                              className="w-full h-11 border-2 border-pink-100 hover:border-pink-300 bg-white hover:bg-pink-50/40 text-left text-xs font-bold px-4 py-2 flex items-center justify-between rounded-2xl transition-all duration-200 transform hover:scale-[1.01] active:scale-[0.99] cursor-pointer text-gray-800 shadow-xs"
                             >
-                              <span className="uppercase tracking-wide flex items-center gap-1.5 truncate">
+                              <span className="flex items-center gap-1.5 truncate">
                                 <span className="truncate">{option.text}</span>
                                 {/* Voter profile picture mini-icons for people you follow */}
                                 {voterProfiles.length > 0 && (
-                                  <div className="flex items-center -space-x-1 overflow-hidden shrink-0 select-none ml-1.5 bg-white/65 p-0.5 rounded-full border border-black/10">
+                                  <div className="flex items-center -space-x-1 overflow-hidden shrink-0 select-none ml-1.5 bg-white/80 p-0.5 rounded-full border border-pink-200">
                                     {voterProfiles.map((prof) => (
                                       <img
                                         key={`${poll.id}-opt-${idx}-voter-${prof.id}`}
                                         src={prof.avatar_url || 'https://images.unsplash.com/photo-1535713875002-d1d0cf377fde?auto=format&fit=crop&w=80&q=80'}
                                         alt={prof.username}
                                         title={`${prof.username?.toUpperCase()} (followed) voted for this`}
-                                        className="w-4 h-4 rounded-full border border-black/30 object-cover shrink-0 bg-white"
+                                        className="w-4 h-4 rounded-full border border-pink-200 object-cover shrink-0 bg-white"
                                         onError={(e) => {
                                           e.currentTarget.src = 'https://images.unsplash.com/photo-1535713875002-d1d0cf377fde?auto=format&fit=crop&w=80&q=80';
                                         }}
@@ -882,8 +878,8 @@ export default function LivePollingGrid({
                                   </div>
                                 )}
                               </span>
-                              <span className="text-[9px] font-mono text-shonen-orange font-bold tracking-widest shrink-0">
-                                [⚡ ACTIVATE]
+                              <span className="text-[10px] text-pink-500 font-bold tracking-wider shrink-0 bg-pink-50 px-2 py-0.5 rounded-full border border-pink-200">
+                                [ ✨ VOTE ]
                               </span>
                             </button>
                           )}
@@ -898,9 +894,9 @@ export default function LivePollingGrid({
                             sounds.playSelect();
                             onUndoVote(poll.id);
                           }}
-                          className="font-mono text-[9px] text-shonen-orange hover:text-shonen-red hover:underline font-extrabold uppercase tracking-widest cursor-pointer flex items-center gap-1"
+                          className="text-[10px] text-pink-500 hover:text-rose-600 hover:underline font-bold tracking-wide cursor-pointer flex items-center gap-1"
                         >
-                          [ ↩ UNDO / REMOVE MY VOTE ]
+                          [ ↩ Change My Vote ]
                         </button>
                       </div>
                     )}
@@ -910,9 +906,9 @@ export default function LivePollingGrid({
                   {!commentsOpen && pollComments.length > 0 && (
                     <button
                       onClick={() => toggleComments(poll.id)}
-                      className="font-mono text-[10px] text-gray-400 hover:text-shonen-orange uppercase tracking-wider block"
+                      className="text-xs text-pink-500 hover:text-pink-600 font-medium tracking-wide block"
                     >
-                      View all {pollComments.length} arena logs in combat comms...
+                      💬 View all {pollComments.length} sweet comments...
                     </button>
                   )}
                 </div>
@@ -925,29 +921,27 @@ export default function LivePollingGrid({
                       animate={{ height: 'auto', opacity: 1 }}
                       exit={{ height: 0, opacity: 0 }}
                       transition={{ duration: 0.25, ease: 'easeInOut' }}
-                      className="z-10 border-t border-gray-200 p-4 bg-gray-50 flex flex-col gap-4 overflow-hidden"
+                      className="z-10 border-t border-pink-100 p-4 bg-pink-50/40 rounded-b-3xl flex flex-col gap-3 overflow-hidden"
                     >
                       {commentsEnabled ? (
                         <>
                           {/* Scrolling Comments Panel */}
-                          <div className="max-h-52 overflow-y-auto space-y-3 pr-1 scrollbar-thin scrollbar-thumb-gray-200">
+                          <div className="max-h-52 overflow-y-auto space-y-2.5 pr-1 scrollbar-thin scrollbar-thumb-pink-200">
                             {pollComments.length === 0 ? (
-                              <p className="font-mono text-[9px] text-gray-400 uppercase text-center py-6">
-                                NO INTEL REGISTRATION LOGS YET. BE THE FIRST TO TRANSMIT!
+                              <p className="font-medium text-xs text-pink-400 text-center py-6">
+                                🌸 No comments yet! Be the first to share your thoughts.
                               </p>
                             ) : (
                               pollComments.map((comment) => {
                                 const isCommenterAdmin = comment.username?.toUpperCase() === 'ADHYANGIRI6' || comment.username?.toUpperCase() === 'ARENA_MOD_X';
-                                const isCommenterPremium = isCommenterAdmin || comment.username?.toUpperCase() === 'SENSEI_TANAKA';
-                                const commentUserClean = (comment.username || 'SHINOBI').toUpperCase();
+                                const commentUserClean = (comment.username || 'FAN').toUpperCase();
                                 const isSelfComment = currentUser?.username?.toUpperCase() === commentUserClean;
                                 const isFollowingCommenter = isUserFollowing(commentUserClean);
-                                const commAnime = getAnimeThemeConfig(commentUserClean);
 
                                 return (
-                                  <div key={`com-${comment.id}`} className="p-2.5 bg-white border border-gray-100 flex items-start gap-2.5">
-                                    {/* Small circle avatar with simple dynamic colors */}
-                                    <div className="w-7 h-7 rounded-full shrink-0 flex items-center justify-center border border-gray-200 bg-gray-50 overflow-hidden">
+                                  <div key={`com-${comment.id}`} className="p-3 bg-white/95 border border-pink-100/90 rounded-2xl flex items-start gap-3 shadow-xs">
+                                    {/* Small circle avatar */}
+                                    <div className="w-8 h-8 rounded-full shrink-0 flex items-center justify-center border border-pink-200 bg-pink-50 overflow-hidden shadow-xs">
                                       {(() => {
                                         const commenterProfile = allProfiles?.find(p => p.username?.toUpperCase() === commentUserClean);
                                         const commenterAvatarUrl = commenterProfile?.avatar_url;
@@ -964,7 +958,7 @@ export default function LivePollingGrid({
                                             />
                                           );
                                         }
-                                        return <span className="text-[9px] font-mono font-black text-gray-700">{commAnime.avatarSymbol}</span>;
+                                        return <span className="text-xs">🌸</span>;
                                       })()}
                                     </div>
 
@@ -972,26 +966,12 @@ export default function LivePollingGrid({
                                     <div className="flex-1 min-w-0">
                                       <div className="flex items-center justify-between gap-1 mb-0.5">
                                         <div className="flex items-center gap-1.5 flex-wrap">
-                                          <span className="font-sans text-[10px] font-black text-gray-900 uppercase truncate max-w-[100px] flex items-center gap-1">
-                                            {(() => {
-                                              const commenterProfile = allProfiles?.find(p => p.username?.toUpperCase() === commentUserClean);
-                                              const commenterAvatarUrl = commenterProfile?.avatar_url;
-                                              if (commenterAvatarUrl) {
-                                                return (
-                                                  <img 
-                                                    src={commenterAvatarUrl} 
-                                                    alt={`${commentUserClean} mini avatar`} 
-                                                    className="w-3.5 h-3.5 rounded-full object-cover border border-black/10 shrink-0" 
-                                                  />
-                                                );
-                                              }
-                                              return null;
-                                            })()}
+                                          <span className="text-xs font-bold text-gray-800 truncate max-w-[120px] flex items-center gap-1">
                                             {commentUserClean}
                                           </span>
                                           {isCommenterAdmin && (
-                                            <span className="bg-shonen-orange text-white font-mono text-[7px] px-1 font-black rounded-xs shrink-0">
-                                              CPT
+                                            <span className="bg-gradient-to-r from-pink-500 to-rose-400 text-white text-[8px] px-1.5 py-0.2 font-bold rounded-full shrink-0">
+                                              Mod 🌸
                                             </span>
                                           )}
                                         </div>
@@ -1007,14 +987,14 @@ export default function LivePollingGrid({
                                                 onFollow(commentUserClean, commentUserClean);
                                               }
                                             }}
-                                            className="text-[8px] font-mono text-shonen-orange hover:text-black uppercase font-black"
+                                            className="text-[9px] text-pink-500 hover:text-pink-600 font-bold"
                                           >
-                                            {isFollowingCommenter ? 'FOLLOWING' : '+FOLLOW'}
+                                            {isFollowingCommenter ? 'Following' : '+ Follow'}
                                           </button>
                                         )}
                                       </div>
 
-                                      <p className="text-[11px] font-sans text-gray-600 leading-normal break-words">
+                                      <p className="text-xs text-gray-700 leading-relaxed break-words font-medium">
                                         {comment.text}
                                       </p>
                                     </div>
@@ -1025,7 +1005,7 @@ export default function LivePollingGrid({
                           </div>
 
                           {/* Inline Direct Comment submission Form */}
-                          <form onSubmit={(e) => handleCommentSubmit(e, poll.id)} className="flex items-center gap-2 border-t border-gray-200 pt-3">
+                          <form onSubmit={(e) => handleCommentSubmit(e, poll.id)} className="flex items-center gap-2 border-t border-pink-100 pt-3">
                             <input
                               type="text"
                               value={commentInputs[poll.id] || ''}
@@ -1038,26 +1018,26 @@ export default function LivePollingGrid({
                               disabled={!currentUser}
                               placeholder={
                                 currentUser 
-                                  ? "Write a comment as " + currentUser.username.toUpperCase() + "..." 
-                                  : "LOG-IN TO POST IN FEED"
+                                  ? `Say something sweet as ${currentUser.username}... 🌸` 
+                                  : "Sign in to leave a sweet comment 🌸"
                               }
-                              className="flex-1 bg-white border border-gray-200 focus:border-shonen-orange px-3 py-1.5 font-sans text-xs text-black placeholder-gray-400 focus:outline-none uppercase"
+                              className="flex-1 bg-white border border-pink-200 focus:border-pink-400 focus:ring-2 focus:ring-pink-200/50 rounded-full px-4 py-2 text-xs text-gray-800 placeholder-pink-300 focus:outline-none transition-all"
                             />
                             <button
                               type="submit"
                               disabled={!currentUser || !(commentInputs[poll.id] || '').trim()}
-                              className="bg-shonen-orange text-white hover:bg-black disabled:bg-gray-100 disabled:text-gray-400 px-3 py-1.5 border border-shonen-orange font-sans font-black text-xs uppercase shrink-0 cursor-pointer"
+                              className="bg-gradient-to-r from-pink-500 to-rose-400 text-white hover:from-pink-600 hover:to-rose-500 disabled:opacity-40 px-4 py-2 rounded-full font-bold text-xs shrink-0 cursor-pointer transition-all shadow-xs active:scale-95"
                             >
-                              POST
+                              Send 💌
                             </button>
                           </form>
                         </>
                       ) : (
                         /* Comments disabled */
-                        <div className="p-3 border border-dashed border-gray-200 bg-gray-50 text-center flex flex-col items-center justify-center gap-1.5">
-                          <AlertCircle className="w-4 h-4 text-shonen-red" />
-                          <p className="font-mono text-[9px] text-gray-400 uppercase tracking-wide font-bold">
-                            STREAM LOGS DISABLED FOR THIS ZONE.
+                        <div className="p-4 border border-dashed border-pink-200 bg-white/70 rounded-2xl text-center flex flex-col items-center justify-center gap-1.5">
+                          <AlertCircle className="w-4 h-4 text-pink-400" />
+                          <p className="text-xs text-pink-400 font-medium">
+                            Comments are turned off for this poll.
                           </p>
                         </div>
                       )}

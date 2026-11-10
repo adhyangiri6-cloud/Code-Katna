@@ -2094,64 +2094,48 @@ export default function App() {
             exit={{ 
               opacity: 0, 
               scale: 1.05,
-              filter: 'blur(10px)',
-              transition: { duration: 0.6, ease: 'easeOut' }
+              filter: 'blur(8px)',
+              transition: { duration: 0.5, ease: 'easeOut' }
             }}
-            className="fixed inset-0 bg-[#FFFDF9] z-[100] flex flex-col items-center justify-center select-none overflow-hidden"
+            className="fixed inset-0 bg-gradient-to-b from-[#FFF5F7] via-[#FFF9FB] to-[#FFF0F4] z-[100] flex flex-col items-center justify-center select-none overflow-hidden"
           >
-            {/* Manga grid backdrop */}
-            <div className="absolute inset-0 bg-[radial-gradient(ellipse_at_center,rgba(255,107,0,0.1),transparent_70%)] pointer-events-none" />
-            <div className="absolute inset-0 bg-[linear-gradient(to_right,rgba(255,107,0,0.03)_1px,transparent_1px),linear-gradient(to_bottom,rgba(255,107,0,0.03)_1px,transparent_1px)] bg-[size:30px_30px] opacity-40" />
-            
-            {/* Scanlines */}
-            <div className="absolute inset-0 scanlines opacity-5 pointer-events-none" />
+            {/* Soft ambient glow */}
+            <div className="absolute inset-0 bg-radial-at-c from-pink-200/40 via-transparent to-pink-100/30 pointer-events-none" />
 
             <div className="relative text-center px-4 max-w-xl">
               {/* Top status tag */}
-              <div className="inline-flex items-center gap-1.5 font-mono text-[9px] text-shonen-orange bg-shonen-orange/10 border border-shonen-orange/30 px-3 py-1 mb-6 uppercase tracking-[0.25em] animate-pulse">
-                <span className="w-1.5 h-1.5 bg-shonen-orange rounded-full animate-ping" />
-                LOADING STREAMING MATRIX PROTOCOL v0.98
+              <div className="inline-flex items-center gap-2 text-xs font-bold text-pink-600 bg-pink-100/80 border border-pink-200 px-4 py-1.5 rounded-full mb-6 shadow-xs animate-bounce">
+                <span>🌸</span>
+                <span>SWEET ANIME COMMUNITY &bull; VELGRE</span>
+                <span>✨</span>
               </div>
 
-              {/* VELGRE Orange display */}
-              <div className="relative mb-6 group">
-                <h1 className="text-4xl sm:text-6xl font-black tracking-widest text-black uppercase italic select-none relative z-10 font-sans">
-                  VEL<span className="text-shonen-orange">GRE</span>
-                </h1>
-                
-                {/* Secondary duplicate layer */}
-                <h1 className="absolute inset-0 text-4xl sm:text-6xl font-black tracking-widest text-shonen-orange uppercase italic select-none opacity-40 translate-x-[2px] -translate-y-[1px] animate-pulse blur-[1px]">
-                  VELGRE
-                </h1>
-                <h1 className="absolute inset-0 text-4xl sm:text-6xl font-black tracking-widest text-orange-400 uppercase italic select-none opacity-30 -translate-x-[2px] translate-y-[2px] blur-[0.5px]">
-                  VELGRE
+              {/* VELGRE Kawaii display */}
+              <div className="relative mb-4">
+                <h1 className="text-5xl sm:text-7xl font-black tracking-tight text-transparent bg-clip-text bg-gradient-to-r from-pink-500 via-rose-400 to-purple-500 select-none drop-shadow-sm font-sans">
+                  VELGRE 🌸
                 </h1>
               </div>
 
-              <div className="font-mono text-xs text-gray-500 tracking-[0.3em] font-bold uppercase mb-12 relative flex items-center justify-center gap-2">
-                <span>P R E S E N T S</span>
+              <div className="text-xs text-pink-400 font-bold tracking-widest uppercase mb-10">
+                <span>Sweet Polls &bull; Anime Clashes &bull; Taste Resonance</span>
               </div>
 
               {/* Animated high-density progress loading bar */}
-              <div className="w-64 mx-auto h-1.5 bg-gray-100 border border-black/10 p-[2px] relative mb-4">
+              <div className="w-64 mx-auto h-2 bg-pink-100 rounded-full overflow-hidden p-[2px] relative mb-4 shadow-inner">
                 <motion.div
                   initial={{ width: 0 }}
                   animate={{ width: '100%' }}
                   transition={{ duration: 1.8, ease: 'easeInOut' }}
-                  className="h-full bg-shonen-orange shadow-[0_0_8px_rgba(255,107,0,0.5)]"
+                  className="h-full bg-gradient-to-r from-pink-400 via-rose-400 to-purple-400 rounded-full shadow-[0_0_10px_rgba(255,101,132,0.5)]"
                 />
               </div>
 
-              {/* Status stream details loading in mono */}
-              <div className="font-mono text-[9px] text-gray-500 uppercase space-y-1">
-                <p className="animate-pulse">DECRYPTING CODENAME HANDSHAKES... [OK]</p>
-                <p className="opacity-60">ESTABLISHING SHONEN CHASSIS CORRUPTURE...</p>
-                <p className="opacity-40">AUDIO_SYNTH: SOUNDS_INITIALIZED // LATENCY_STABLE</p>
+              {/* Status details */}
+              <div className="text-xs text-pink-400 font-medium space-y-1">
+                <p className="animate-pulse">🌸 Gathering sweet polls & sakura petals... ✨</p>
               </div>
             </div>
-
-            {/* Bottom visual hazard lines */}
-            <div className="absolute bottom-0 left-0 right-0 h-2 bg-[linear-gradient(45deg,#FF6B00_25%,#fff_25%,#fff_50%,#FF6B00_50%,#FF6B00_75%,#fff_75%,#fff)] bg-[size:20px_20px] border-t border-black/10" />
           </motion.div>
         )}
       </AnimatePresence>
@@ -2160,54 +2144,55 @@ export default function App() {
       <CyberGrid />
 
       {/* FIXED RETRO TICKER MARQUEE AT VERY TOP */}
-      <div className="w-full bg-shonen-orange text-white py-1 overflow-hidden whitespace-nowrap z-40 select-none border-b border-black font-mono text-[9px] md:text-xs font-black relative">
-        <div className="inline-block animate-marquee uppercase">
-          ✦ Live transmission active ✦ Stream sync ID: 3020-X ✦ 98.4% System Integrity ✦ Next bracket showdown in 12h 45m ✦ Custom room generation online ✦ Live classroom polling unlocked ✦ Please respect the fighter arena codes ✦ 
-          ✦ Live transmission active ✦ Stream sync ID: 3020-X ✦ 98.4% System Integrity ✦ Next bracket showdown in 12h 45m ✦ Custom room generation online ✦ Live classroom polling unlocked ✦ Please respect the fighter arena codes ✦ 
+      <div className="w-full bg-gradient-to-r from-pink-500 via-rose-400 to-pink-500 text-white py-1.5 overflow-hidden whitespace-nowrap z-40 select-none shadow-xs font-bold text-xs relative">
+        <div className="inline-block animate-marquee tracking-wide">
+          🌸 Welcome to Velgre ✦ Cast your votes in real-time anime matchups ✦ Share sweet photos & videos ✦ Discover your anime taste soulmates ✦ Fast, lag-free and adorable 💖 ✦ Live tournament spotlight active ✦ Stay kind and have fun 🌸
+          🌸 Welcome to Velgre ✦ Cast your votes in real-time anime matchups ✦ Share sweet photos & videos ✦ Discover your anime taste soulmates ✦ Fast, lag-free and adorable 💖 ✦ Live tournament spotlight active ✦ Stay kind and have fun 🌸
         </div>
       </div>
 
-      {/* 1. SHONEN NAVBAR */}
+      {/* 1. KAWAII NAVBAR */}
       <motion.nav 
         variants={navbarVariants}
         initial="hidden"
         animate="visible"
-        className="sticky top-0 bg-white/95 backdrop-blur-md border-b-2 border-shonen-orange px-4 md:px-8 py-3.5 flex justify-between items-center z-40 shadow-sm"
+        className="sticky top-0 bg-white/90 backdrop-blur-md border-b border-pink-100 px-4 md:px-8 py-3 flex justify-between items-center z-40 shadow-xs"
       >
-        {/* Left Logo Placeholder with customized high density slant block */}
+        {/* Left Logo */}
         <div className="flex items-center gap-3">
           <motion.div 
             whileHover={{ scale: 1.05 }}
+            whileTap={{ scale: 0.95 }}
             onClick={() => {
               sounds.playSelect();
               window.scrollTo({ top: 0, behavior: 'smooth' });
             }}
-            className="cursor-pointer bg-shonen-orange text-white px-2.5 py-1 font-black text-xl tracking-tighter skew-x-[-12deg] italic select-none"
+            className="cursor-pointer bg-gradient-to-r from-pink-500 via-rose-400 to-pink-500 text-white px-4 py-1.5 rounded-full font-black text-xl tracking-tight shadow-md flex items-center gap-1.5 select-none"
           >
-            VELGRE
+            <span>🌸</span>
+            <span>VELGRE</span>
           </motion.div>
-          <div className="text-shonen-orange text-[10px] font-mono animate-pulse uppercase tracking-[0.2em] ml-4 hidden lg:block">
-            System Status: Operational // v0.98
+          <div className="text-pink-400 text-xs font-bold hidden lg:flex items-center gap-1 ml-2">
+            <span className="w-2 h-2 rounded-full bg-emerald-400 animate-pulse" />
+            <span>Community Online</span>
           </div>
         </div>
 
-        {/* Center Links (styled like high-tech terminal options) */}
-        <div className="hidden md:flex items-center gap-6 font-mono text-xs font-black">
+        {/* Center Links */}
+        <div className="hidden md:flex items-center gap-3 text-xs font-bold">
           <a 
             href="#bracket-spotlight" 
             onClick={() => sounds.playTick()}
-            className="text-gray-600 hover:text-shonen-orange transition-all flex items-center gap-1 group relative py-1"
+            className="text-gray-600 hover:text-pink-600 hover:bg-pink-50/70 px-3.5 py-1.5 rounded-full transition-all"
           >
-            <span>[01]</span> TOURNAMENTS
-            <span className="absolute bottom-0 left-0 w-0 h-0.5 bg-shonen-orange group-hover:w-full transition-all duration-200" />
+            🏆 Tournaments
           </a>
           <a 
             href="#live-polls" 
             onClick={() => sounds.playTick()}
-            className="text-gray-600 hover:text-shonen-orange transition-all flex items-center gap-1 group relative py-1"
+            className="text-gray-600 hover:text-pink-600 hover:bg-pink-50/70 px-3.5 py-1.5 rounded-full transition-all"
           >
-            <span>[02]</span> LIVE POLLS
-            <span className="absolute bottom-0 left-0 w-0 h-0.5 bg-shonen-orange group-hover:w-full transition-all duration-200" />
+            🌸 Live Polls
           </a>
           <button 
             onClick={() => {
@@ -2216,25 +2201,23 @@ export default function App() {
               const el = document.getElementById('live-polls');
               if (el) el.scrollIntoView({ behavior: 'smooth' });
             }}
-            className="text-gray-600 hover:text-shonen-orange transition-all flex items-center gap-1 group relative py-1 text-left"
+            className="text-gray-600 hover:text-pink-600 hover:bg-pink-50/70 px-3.5 py-1.5 rounded-full transition-all cursor-pointer"
           >
-            <span>[03]</span> CLASSROOM
-            <span className="absolute bottom-0 left-0 w-0 h-0.5 bg-shonen-orange group-hover:w-full transition-all duration-200" />
+            🎒 Classroom
           </button>
         </div>
 
-        {/* High-visibility search component */}
+        {/* Search component */}
         <div className="relative max-w-[150px] sm:max-w-[200px] lg:max-w-xs w-full ml-4 mr-auto hidden sm:block">
           <div className="relative">
             <input
               type="text"
               value={navSearch}
               onChange={(e) => handleNavSearch(e.target.value)}
-              placeholder="SEARCH OPERATORS..."
-              className="w-full bg-gray-50 border-2 border-gray-200 hover:border-shonen-orange focus:border-shonen-orange py-1.5 pl-8 pr-3 font-mono text-[9px] text-gray-950 focus:outline-none transition-all placeholder-gray-400 uppercase"
-              style={{ clipPath: 'polygon(0 0, 100% 0, 95% 100%, 0% 100%)' }}
+              placeholder="Search creators..."
+              className="w-full bg-pink-50/50 border border-pink-200 hover:border-pink-300 focus:border-pink-400 focus:ring-2 focus:ring-pink-200/50 py-1.5 pl-8 pr-3 text-xs text-gray-800 focus:outline-none transition-all placeholder-pink-300 rounded-full"
             />
-            <Search className="w-3.5 h-3.5 text-gray-400 absolute left-2.5 top-2.5 pointer-events-none" />
+            <Search className="w-3.5 h-3.5 text-pink-400 absolute left-2.5 top-2.5 pointer-events-none" />
             
             {/* Clear button */}
             {navSearch && (
@@ -2243,9 +2226,9 @@ export default function App() {
                   sounds.playTick();
                   handleNavSearch('');
                 }}
-                className="absolute right-2 top-2 text-[8px] font-mono text-gray-400 hover:text-shonen-orange"
+                className="absolute right-2.5 top-2 text-xs text-pink-400 hover:text-pink-600"
               >
-                [X]
+                ✕
               </button>
             )}
           </div>
@@ -2257,7 +2240,7 @@ export default function App() {
                 initial={{ opacity: 0, y: 10 }}
                 animate={{ opacity: 1, y: 0 }}
                 exit={{ opacity: 0, y: 10 }}
-                className="absolute top-full left-0 right-0 bg-white border-2 border-shonen-orange mt-1.5 p-2 space-y-1.5 z-50 max-h-48 overflow-y-auto shadow-md"
+                className="absolute top-full left-0 right-0 bg-white/95 backdrop-blur-md border border-pink-200 rounded-2xl mt-2 p-2 space-y-1 z-50 max-h-48 overflow-y-auto shadow-lg"
               >
                 {navSearchResults.map((p) => (
                   <div
@@ -2268,18 +2251,18 @@ export default function App() {
                       setIsProfileModalOpen(true);
                       handleNavSearch('');
                     }}
-                    className="p-1.5 bg-gray-50 border border-gray-200 hover:border-shonen-orange transition-all cursor-pointer flex justify-between items-center"
+                    className="p-2 bg-pink-50/40 hover:bg-pink-100/60 rounded-xl transition-all cursor-pointer flex justify-between items-center"
                   >
                     <div className="min-w-0 pr-1 text-left">
-                      <span className="font-mono text-xs font-bold text-gray-900 block truncate">
+                      <span className="text-xs font-bold text-gray-800 block truncate">
                         {p.username}
                       </span>
-                      <span className="font-mono text-[8px] text-shonen-orange block">
-                        ARENA-{p.id.slice(0, 8).toUpperCase()}
+                      <span className="text-[10px] text-pink-500 block">
+                        🌸 #{p.id.slice(0, 6)}
                       </span>
                     </div>
-                    <span className="font-mono text-[8px] text-gray-500 uppercase font-bold shrink-0">
-                      DOSSIER
+                    <span className="text-[10px] text-pink-600 font-bold shrink-0">
+                      Profile 🌸
                     </span>
                   </div>
                 ))}
@@ -2289,8 +2272,8 @@ export default function App() {
         </div>
 
         {/* Right CTA Actions & Mute button */}
-        <div className="flex items-center gap-2 md:gap-3">
-          {/* SECURED OPERATOR SYSTEM AUTHORIZATION PORT */}
+        <div className="flex items-center gap-2">
+          {/* PROFILE / AUTH */}
           {currentUser ? (
             <motion.button
               whileHover={{ scale: 1.03 }}
@@ -2299,14 +2282,14 @@ export default function App() {
                 sounds.playSelect();
                 setIsAuthOpen(true);
               }}
-              className="bg-white border-2 border-shonen-orange text-gray-900 font-mono text-[10px] md:text-xs font-black px-3 py-1.5 uppercase tracking-wide flex items-center gap-2 transition-all hover:bg-shonen-orange hover:text-white shadow-sm cursor-pointer"
+              className="bg-white border border-pink-200 text-gray-800 text-xs font-bold px-3 py-1.5 rounded-full flex items-center gap-2 transition-all hover:bg-pink-50 shadow-xs cursor-pointer"
             >
               {currentUser.avatar_url ? (
-                <img src={currentUser.avatar_url} alt="Authorized operator profile avatar" className="w-5 h-5 rounded-full border border-black/10 object-cover shrink-0" />
+                <img src={currentUser.avatar_url} alt="Profile avatar" className="w-5 h-5 rounded-full border border-pink-200 object-cover shrink-0" />
               ) : (
-                <div className="w-2 h-2 bg-emerald-500 rounded-full animate-pulse shrink-0" />
+                <div className="w-2.5 h-2.5 bg-pink-400 rounded-full animate-pulse shrink-0" />
               )}
-              <span className="truncate max-w-[80px] sm:max-w-[120px]">OP: {currentUser.username.toUpperCase()}</span>
+              <span className="truncate max-w-[80px] sm:max-w-[120px]">{currentUser.username}</span>
             </motion.button>
           ) : (
             <motion.button
@@ -2316,13 +2299,13 @@ export default function App() {
                 sounds.playSelect();
                 setIsAuthOpen(true);
               }}
-              className="border-2 border-shonen-orange text-shonen-orange hover:bg-shonen-orange hover:text-white font-mono text-[10px] md:text-xs font-black px-3.5 py-1.5 uppercase tracking-widest transition-all duration-200 cursor-pointer"
+              className="bg-pink-50 border border-pink-200 text-pink-600 hover:bg-pink-500 hover:text-white text-xs font-bold px-3.5 py-1.5 rounded-full transition-all duration-200 cursor-pointer shadow-xs"
             >
-              [SECURE_LOGIN]
+              🌸 Sign In
             </motion.button>
           )}
 
-          {/* MENTIONS & NOTIFICATIONS SYSTEM PORT */}
+          {/* NOTIFICATIONS */}
           <div className="relative">
             <button
               onClick={() => {
@@ -2330,38 +2313,38 @@ export default function App() {
                 setIsNotificationOpen(true);
                 markNotificationsAsSeen();
               }}
-              title="Neural Mentions (Notifications)"
-              className="p-2 border-2 border-shonen-orange/30 text-shonen-orange hover:bg-shonen-orange/5 hover:border-shonen-orange/70 transition-all duration-200 rounded-sm relative cursor-pointer"
+              title="Notifications"
+              className="w-9 h-9 rounded-full border border-pink-200 bg-white hover:bg-pink-50 text-pink-500 hover:text-pink-600 transition-all flex items-center justify-center relative cursor-pointer shadow-xs"
             >
               <Bell className="w-4 h-4" />
               {getUnreadMentionsCount() > 0 && (
-                <span className="absolute -top-1.5 -right-1.5 bg-shonen-red text-white text-[8px] font-black w-4.5 h-4.5 rounded-full flex items-center justify-center animate-bounce border border-black z-10 shadow-sm">
+                <span className="absolute -top-1 -right-1 bg-rose-500 text-white text-[9px] font-black w-4.5 h-4.5 rounded-full flex items-center justify-center animate-bounce border border-white shadow-xs">
                   {getUnreadMentionsCount()}
                 </span>
               )}
             </button>
           </div>
 
-          {/* DIRECT MESSAGES ICON PORT */}
+          {/* DIRECT MESSAGES ICON */}
           <div className="relative">
             <button
               onClick={() => {
                 sounds.playSelect();
                 window.dispatchEvent(new CustomEvent('open-combat-comms'));
               }}
-              title="Tactical Comms (Direct Messages)"
-              className="p-2 border-2 border-shonen-orange/30 text-shonen-orange hover:bg-shonen-orange/5 hover:border-shonen-orange/70 transition-all duration-200 rounded-sm relative cursor-pointer"
+              title="Messages & Chat"
+              className="w-9 h-9 rounded-full border border-pink-200 bg-white hover:bg-pink-50 text-pink-500 hover:text-pink-600 transition-all flex items-center justify-center relative cursor-pointer shadow-xs"
             >
               <MessageSquare className="w-4 h-4" />
               {unreadChatCount > 0 && (
-                <span className="absolute -top-1.5 -right-1.5 bg-red-600 text-white text-[8px] font-black w-4.5 h-4.5 rounded-full flex items-center justify-center animate-pulse border border-white">
+                <span className="absolute -top-1 -right-1 bg-rose-500 text-white text-[9px] font-black w-4.5 h-4.5 rounded-full flex items-center justify-center animate-pulse border border-white shadow-xs">
                   {unreadChatCount}
                 </span>
               )}
             </button>
           </div>
 
-          {/* TASTE MATCHER BUTTON WITH TWO-WAY REQUESTS BADGE */}
+          {/* TASTE MATCHER BUTTON */}
           <div className="relative">
             <button
               onClick={() => {
@@ -2370,16 +2353,16 @@ export default function App() {
                 setIsTasteMatcherOpen(true);
               }}
               title="Two-Way Anime Taste Matcher"
-              className="px-2.5 py-1.5 border-2 border-pink-400 bg-pink-50 text-pink-600 hover:bg-pink-600 hover:text-white transition-all duration-200 rounded-sm relative cursor-pointer font-mono text-[10px] font-black uppercase flex items-center gap-1.5 shadow-xs"
+              className="px-3 py-1.5 border border-pink-200 bg-gradient-to-r from-pink-50 to-purple-50 text-pink-600 hover:from-pink-500 hover:to-rose-400 hover:text-white transition-all duration-200 rounded-full relative cursor-pointer text-xs font-bold flex items-center gap-1.5 shadow-xs"
             >
               <Heart className="w-3.5 h-3.5 fill-pink-500 text-pink-500 animate-pulse" />
-              <span className="hidden sm:inline">TASTE MATCHER</span>
+              <span className="hidden sm:inline">Taste Matcher</span>
               {(() => {
                 const pendingCount = getTasteRequests().filter(
                   r => r.to_user_id === (currentUser?.id || 'guest') && r.status === 'pending'
                 ).length;
                 return pendingCount > 0 ? (
-                  <span className="bg-pink-600 text-white text-[8px] font-black px-1.5 py-0.2 rounded-full animate-bounce border border-white">
+                  <span className="bg-rose-500 text-white text-[9px] font-bold px-1.5 py-0.2 rounded-full animate-bounce border border-white">
                     {pendingCount}
                   </span>
                 ) : null;
@@ -2387,14 +2370,14 @@ export default function App() {
             </button>
           </div>
 
-          {/* Audio Synthesizer Controller Toggle */}
+          {/* Sound Toggle */}
           <button
             onClick={handleToggleMute}
-            title={isMuted ? "Unmute Retro Synthesizer" : "Mute Retro Synthesizer"}
-            className={`p-2 border-2 transition-all duration-200 rounded-sm ${
+            title={isMuted ? "Unmute Sound" : "Mute Sound"}
+            className={`w-9 h-9 rounded-full border transition-all flex items-center justify-center cursor-pointer shadow-xs ${
               isMuted 
-                ? 'border-gray-300 text-gray-400 hover:text-gray-600 hover:border-gray-400' 
-                : 'border-shonen-orange/30 text-shonen-orange hover:bg-shonen-orange/5 hover:border-shonen-orange/70'
+                ? 'border-gray-200 text-gray-400 bg-white hover:border-pink-200' 
+                : 'border-pink-200 text-pink-500 bg-white hover:bg-pink-50'
             }`}
           >
             {isMuted ? <VolumeX className="w-4 h-4" /> : <Volume2 className="w-4 h-4" />}
@@ -2409,30 +2392,30 @@ export default function App() {
               sounds.playSelect();
               setIsModalOpen(true);
             }}
-            className="bg-gradient-to-r from-pink-600 via-rose-500 to-amber-500 hover:opacity-95 text-white font-mono text-[10px] md:text-xs font-black px-5 py-2 uppercase tracking-widest transition-all duration-200 border-2 border-black shadow-xs cursor-pointer flex items-center gap-1.5"
-            style={{ clipPath: 'polygon(0 0, 100% 0, 92% 100%, 0 100%)' }}
+            className="bg-gradient-to-r from-pink-500 via-rose-400 to-amber-400 hover:opacity-95 text-white text-xs font-bold px-4 sm:px-5 py-2 rounded-full uppercase tracking-wider transition-all duration-200 shadow-[0_4px_16px_rgba(255,101,132,0.35)] cursor-pointer flex items-center gap-1.5"
           >
-            <Sparkles className="w-3.5 h-3.5 text-yellow-200" />
-            <span>✨ POST / POLL</span>
+            <Sparkles className="w-3.5 h-3.5 text-yellow-100" />
+            <span>✨ Post / Poll</span>
           </motion.button>
         </div>
       </motion.nav>
 
       {/* SYSTEM ADVICE BANNER */}
-      <div className="bg-white border-b border-gray-100 py-2.5 px-4 text-center select-none z-30 relative shadow-sm">
-        <div className="max-w-7xl mx-auto flex items-center justify-center gap-2 font-mono text-[10px] sm:text-xs font-black text-shonen-orange tracking-wider">
-          <Monitor className="w-4 h-4 text-shonen-orange shrink-0 animate-pulse" />
-          <span className="uppercase leading-normal">
-            [ARENA MONITOR] PROTOC-STREAM TRANSMITS AT HIGH DENSITY. FOR THE OPTIMAL FIGHTING EXPERIENCE, THIS INTERACTIVE CONSOLE WORKS BETTER ON DESKTOP SITES.
+      <div className="bg-gradient-to-r from-pink-50/80 via-white to-pink-50/80 border-b border-pink-100 py-2.5 px-4 text-center select-none z-30 relative shadow-xs">
+        <div className="max-w-7xl mx-auto flex items-center justify-center gap-2 text-xs font-bold text-pink-600">
+          <span>🌸</span>
+          <span>
+            Welcome to Velgre! Vote in polls, share adorable anime moments, and find people with your exact taste! 💖
           </span>
+          <span>🌸</span>
         </div>
       </div>
 
-      {/* SHONEN GRAM INSTAGRAM STORIES ROW */}
-      <div className="w-full bg-white border-b border-gray-200 py-4 select-none z-30 relative overflow-x-auto scrollbar-none shadow-sm">
+      {/* INSTAGRAM STORIES ROW */}
+      <div className="w-full bg-white/80 backdrop-blur-xs border-b border-pink-100 py-4 select-none z-30 relative overflow-x-auto scrollbar-none shadow-xs">
         <div className="max-w-4xl mx-auto px-4 flex gap-6 items-center">
-          <div className="text-[10px] font-mono text-gray-400 uppercase tracking-widest font-black pr-4 border-r border-gray-200 shrink-0">
-            📡 ARENA<br/>STORIES
+          <div className="text-xs font-bold text-pink-400 uppercase tracking-wider pr-4 border-r border-pink-100 shrink-0">
+            🌸 Community<br/>Stories
           </div>
           
           <div className="flex gap-5 overflow-x-auto pb-1 scrollbar-none shrink-0">
@@ -2444,17 +2427,17 @@ export default function App() {
               }}
               className="flex flex-col items-center gap-1.5 cursor-pointer group"
             >
-              <div className={`w-14 h-14 rounded-full p-[2.5px] transition-transform duration-300 group-hover:scale-105 ${activeCategoryFilter === 'ALL' ? 'insta-story-ring' : 'bg-gray-200'}`}>
-                <div className="w-full h-full rounded-full bg-white flex items-center justify-center text-lg font-black text-black">
-                  🌀
+              <div className={`w-14 h-14 rounded-full p-[2.5px] transition-transform duration-300 group-hover:scale-105 ${activeCategoryFilter === 'ALL' ? 'insta-story-ring' : 'bg-pink-100'}`}>
+                <div className="w-full h-full rounded-full bg-white flex items-center justify-center text-xl shadow-inner">
+                  🌸
                 </div>
               </div>
-              <span className={`text-[9px] font-sans font-black tracking-tight uppercase ${activeCategoryFilter === 'ALL' ? 'text-shonen-orange' : 'text-gray-500 group-hover:text-black'}`}>
-                ALL ARENAS
+              <span className={`text-[10px] font-bold tracking-tight ${activeCategoryFilter === 'ALL' ? 'text-pink-600' : 'text-gray-500 group-hover:text-pink-600'}`}>
+                All Polls
               </span>
             </div>
 
-            {/* Story 2: SOUL SOCIETY (Bleach) */}
+            {/* Story 2: POP-CULTURE */}
             <div 
               onClick={() => {
                 sounds.playSelect();
@@ -2462,17 +2445,17 @@ export default function App() {
               }}
               className="flex flex-col items-center gap-1.5 cursor-pointer group"
             >
-              <div className={`w-14 h-14 rounded-full p-[2.5px] transition-transform duration-300 group-hover:scale-105 ${activeCategoryFilter === 'POP-CULTURE' ? 'insta-story-ring' : 'bg-gray-200'}`}>
-                <div className="w-full h-full rounded-full bg-white flex items-center justify-center text-lg font-black text-black">
-                  💀
+              <div className={`w-14 h-14 rounded-full p-[2.5px] transition-transform duration-300 group-hover:scale-105 ${activeCategoryFilter === 'POP-CULTURE' ? 'insta-story-ring' : 'bg-pink-100'}`}>
+                <div className="w-full h-full rounded-full bg-white flex items-center justify-center text-xl shadow-inner">
+                  ✨
                 </div>
               </div>
-              <span className={`text-[9px] font-sans font-black tracking-tight uppercase ${activeCategoryFilter === 'POP-CULTURE' ? 'text-shonen-orange' : 'text-gray-500 group-hover:text-black'}`}>
-                SOUL SOCIETY
+              <span className={`text-[10px] font-bold tracking-tight ${activeCategoryFilter === 'POP-CULTURE' ? 'text-pink-600' : 'text-gray-500 group-hover:text-pink-600'}`}>
+                Pop Culture
               </span>
             </div>
 
-            {/* Story 3: KONOHA VILLAGE (Naruto) */}
+            {/* Story 3: CLASSROOM */}
             <div 
               onClick={() => {
                 sounds.playSelect();
@@ -2480,13 +2463,13 @@ export default function App() {
               }}
               className="flex flex-col items-center gap-1.5 cursor-pointer group"
             >
-              <div className={`w-14 h-14 rounded-full p-[2.5px] transition-transform duration-300 group-hover:scale-105 ${activeCategoryFilter === 'CLASSROOM' ? 'insta-story-ring' : 'bg-gray-200'}`}>
-                <div className="w-full h-full rounded-full bg-white flex items-center justify-center text-lg font-black text-black">
-                  渦
+              <div className={`w-14 h-14 rounded-full p-[2.5px] transition-transform duration-300 group-hover:scale-105 ${activeCategoryFilter === 'CLASSROOM' ? 'insta-story-ring' : 'bg-pink-100'}`}>
+                <div className="w-full h-full rounded-full bg-white flex items-center justify-center text-xl shadow-inner">
+                  🎒
                 </div>
               </div>
-              <span className={`text-[9px] font-sans font-black tracking-tight uppercase ${activeCategoryFilter === 'CLASSROOM' ? 'text-shonen-orange' : 'text-gray-500 group-hover:text-black'}`}>
-                KONOHA ZONE
+              <span className={`text-[10px] font-bold tracking-tight ${activeCategoryFilter === 'CLASSROOM' ? 'text-pink-600' : 'text-gray-500 group-hover:text-pink-600'}`}>
+                Classroom
               </span>
             </div>
           </div>
@@ -2494,28 +2477,30 @@ export default function App() {
       </div>
 
       {/* 2. HERO SECTION */}
-      <section className="relative w-full max-w-6xl mx-auto px-4 py-16 md:py-20 z-10">
-        <div className="flex flex-col md:flex-row justify-between items-end border-l-4 border-shonen-orange pl-6 gap-6 text-left">
+      <section className="relative w-full max-w-6xl mx-auto px-4 py-14 md:py-18 z-10">
+        <div className="flex flex-col md:flex-row justify-between items-center gap-8 text-center md:text-left">
           <div className="max-w-2xl">
             {/* Big Bold Headline */}
             <motion.h1 
               variants={heroTitleVariants}
               initial="hidden"
               animate="visible"
-              className="text-4xl sm:text-6xl md:text-7xl font-black italic uppercase leading-none tracking-tighter mb-2 text-gray-950"
+              className="text-4xl sm:text-6xl md:text-6xl font-black tracking-tight leading-tight mb-3 text-gray-900"
             >
-              VEL<span className="text-shonen-orange">GRE.</span> <br />
-              REAL-TIME <span className="text-shonen-orange">DECISIONS.</span>
+              VELGRE. <br />
+              <span className="text-transparent bg-clip-text bg-gradient-to-r from-pink-500 via-rose-400 to-purple-500">
+                SWEET ANIME POLLS & VOTING 🌸
+              </span>
             </motion.h1>
 
-            {/* Sub-headline explaining bracket and classrooms */}
+            {/* Sub-headline */}
             <motion.p 
               initial={{ opacity: 0, y: 15 }}
               animate={{ opacity: 1, y: 0 }}
               transition={{ duration: 0.5, delay: 0.4 }}
-              className="text-gray-600 text-xs sm:text-sm font-mono uppercase tracking-wide opacity-90"
+              className="text-gray-600 text-sm sm:text-base leading-relaxed max-w-xl font-medium"
             >
-              MASSIVE POP-CULTURE BRACKETS VS PRIVATE CLASSROOM POLLING. THE ARENA AWAITS YOUR COMMAND.
+              Vote in adorable anime character clashes, share your favorite photos and videos, and run the two-way anime taste matcher to find your soulmates! 💖
             </motion.p>
 
             {/* Cute Anime Tagline */}
@@ -2523,75 +2508,68 @@ export default function App() {
               initial={{ opacity: 0, y: 15 }}
               animate={{ opacity: 1, y: 0 }}
               transition={{ duration: 0.5, delay: 0.5 }}
-              className="mt-4 flex flex-wrap items-center gap-2"
+              className="mt-5 flex flex-wrap items-center justify-center md:justify-start gap-2.5"
             >
-              <span className="bg-pink-50 border-2 border-black text-pink-700 font-mono text-xs font-black px-3 py-1 uppercase tracking-wider flex items-center gap-1.5 shadow-xs">
+              <span className="bg-pink-50 border border-pink-200 text-pink-700 text-xs font-bold px-3.5 py-1.5 rounded-full flex items-center gap-1.5 shadow-xs">
                 <Heart className="w-3.5 h-3.5 fill-pink-500 text-pink-500 animate-pulse" />
-                ✨ ANIME CLASH & TASTE ARENA
+                ✨ Anime Matchups & Resonance
               </span>
-              <span className="bg-amber-50 border-2 border-black text-amber-900 font-mono text-xs font-black px-3 py-1 uppercase tracking-wider flex items-center gap-1.5 shadow-xs">
-                <Sparkles className="w-3.5 h-3.5 text-amber-500 animate-spin" />
-                VOTE, POST & MATCH TASTE 🌸
+              <span className="bg-purple-50 border border-purple-200 text-purple-700 text-xs font-bold px-3.5 py-1.5 rounded-full flex items-center gap-1.5 shadow-xs">
+                <Sparkles className="w-3.5 h-3.5 text-purple-500 animate-spin-slow" />
+                Vote, Post & Discover Friends 🌸
               </span>
             </motion.div>
           </div>
 
-          {/* Two CTAs Fighting for Attention with High Density shadows */}
+          {/* Two CTAs */}
           <motion.div 
             initial={{ opacity: 0, y: 20 }}
             animate={{ opacity: 1, y: 0 }}
             transition={{ duration: 0.6, delay: 0.5 }}
-            className="flex flex-col sm:flex-row gap-4 w-full sm:w-auto"
+            className="flex flex-col sm:flex-row gap-3 w-full sm:w-auto"
           >
             {/* Enter Pop-Culture Button */}
             <motion.a
               href="#bracket-spotlight"
-              whileHover={{ scale: 1.02 }}
+              whileHover={{ scale: 1.03 }}
+              whileTap={{ scale: 0.97 }}
               onClick={() => sounds.playPunchyCTA()}
-              className="bg-shonen-orange text-white px-8 py-4 font-black uppercase text-base shadow-[4px_4px_0px_#000] hover:translate-x-0.5 hover:translate-y-0.5 hover:shadow-[2px_2px_0px_#000] transition-all text-center flex items-center justify-center gap-2 cursor-pointer rounded-none border-2 border-black"
+              className="bg-gradient-to-r from-pink-500 to-rose-400 text-white px-8 py-4 font-bold rounded-full text-sm shadow-[0_6px_20px_rgba(255,101,132,0.35)] hover:shadow-[0_8px_25px_rgba(255,101,132,0.5)] transition-all text-center flex items-center justify-center gap-2 cursor-pointer"
             >
-              <Swords className="w-4 h-4" /> ENTER POP-CULTURE
+              <span>🌸 Explore Matchups</span>
             </motion.a>
 
-            {/* Teacher control button */}
+            {/* Classroom control button */}
             <motion.button
-              whileHover={{ scale: 1.02 }}
+              whileHover={{ scale: 1.03 }}
+              whileTap={{ scale: 0.97 }}
               onClick={() => {
                 sounds.playPunchyCTA();
                 setActiveCategoryFilter('CLASSROOM');
                 const el = document.getElementById('live-polls');
                 if (el) el.scrollIntoView({ behavior: 'smooth' });
               }}
-              className="bg-black text-white px-8 py-4 font-black uppercase text-base shadow-[4px_4px_0px_#FF6B00] hover:translate-x-0.5 hover:translate-y-0.5 hover:shadow-[2px_2px_0px_#FF6B00] transition-all text-center flex items-center justify-center gap-2 cursor-pointer rounded-none border-2 border-black"
+              className="bg-white border-2 border-pink-200 text-pink-600 hover:bg-pink-50 px-8 py-4 font-bold rounded-full text-sm shadow-xs transition-all text-center flex items-center justify-center gap-2 cursor-pointer"
             >
-              <GraduationCap className="w-4 h-4" /> TEACHER CONTROL
+              <GraduationCap className="w-4 h-4 text-pink-500" /> 
+              <span>Classroom Polls</span>
             </motion.button>
           </motion.div>
         </div>
       </section>
 
-      {/* SECURE/STYLISH DIAGONAL BANNER DIVIDER */}
-      <div className="w-full relative py-6 bg-gray-50 border-y-2 border-gray-200 select-none overflow-hidden my-4">
-        {/* hazard stripes running across */}
-        <div className="absolute inset-0 opacity-5 bg-[linear-gradient(45deg,#000_25%,transparent_25%,transparent_50%,#000_50%,#000_75%,transparent_75%,transparent)] bg-[size:40px_40px]" />
-        
-        <div className="max-w-6xl mx-auto px-4 flex flex-col md:flex-row justify-between items-center gap-4 relative z-10">
-          <div className="flex items-center gap-2 text-xs font-mono font-bold text-gray-600">
-            <Cpu className="w-4 h-4 text-shonen-orange animate-spin" style={{ animationDuration: '8s' }} />
-            <span>GRID NODE SYNC: STABLE (0.012MS)</span>
+      {/* STYLISH CUTE BANNER DIVIDER */}
+      <div className="w-full relative py-4 bg-gradient-to-r from-pink-50/60 via-purple-50/40 to-pink-50/60 border-y border-pink-100 select-none overflow-hidden my-4">
+        <div className="max-w-6xl mx-auto px-4 flex flex-col md:flex-row justify-between items-center gap-3 relative z-10 text-xs font-bold text-pink-600">
+          <div className="flex items-center gap-2">
+            <Sparkles className="w-4 h-4 text-pink-500 animate-spin-slow" />
+            <span>🌸 Real-Time Polls & Community Voting</span>
           </div>
-          <div className="flex items-center gap-3">
-            <span className="text-[10px] font-mono text-gray-500">DECRYPT CODES:</span>
-            <div className="h-2 w-16 bg-gray-200 overflow-hidden relative border border-gray-300 rounded-full">
-              <motion.div 
-                animate={{ left: ['-100%', '100%'] }} 
-                transition={{ duration: 2, repeat: Infinity, ease: 'linear' }}
-                className="absolute top-0 bottom-0 w-8 bg-shonen-orange/30"
-              />
-            </div>
+          <div className="flex items-center gap-2">
+            <span>✨ 100% Safe, Friendly & Kind Community</span>
           </div>
-          <div className="flex items-center gap-2 text-xs font-mono font-bold text-shonen-orange">
-            <span>[ENCRYPTED FEED CHANNELS ONLINE]</span>
+          <div className="flex items-center gap-2 text-purple-600">
+            <span>💖 Two-Way Anime Taste Matcher Ready</span>
           </div>
         </div>
       </div>

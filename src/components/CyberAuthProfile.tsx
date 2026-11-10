@@ -462,22 +462,22 @@ export default function CyberAuthProfile({
             animate={{ x: 0 }}
             exit={{ x: '100%' }}
             transition={{ type: 'spring', damping: 25, stiffness: 200 }}
-            className="relative w-full max-w-lg h-full bg-[#FFFDF9] border-l-4 border-shonen-orange p-6 md:p-8 overflow-y-auto flex flex-col justify-between z-50 shadow-[-10px_0_40px_rgba(255,107,0,0.15)] rounded-none text-gray-950"
+            className="relative w-full max-w-lg h-full bg-white/98 backdrop-blur-md border-l-2 border-pink-200 p-6 md:p-8 overflow-y-auto flex flex-col justify-between z-50 shadow-[-10px_0_40px_rgba(255,182,193,0.25)] text-gray-800"
           >
-            {/* Top caution header decorative */}
-            <div className="absolute top-0 left-0 right-0 h-1.5 bg-[linear-gradient(45deg,#FF6B00_25%,#fff_25%,#fff_50%,#FF6B00_50%,#FF6B00_75%,#fff_75%,#fff)] bg-[size:16px_16px]" />
+            {/* Top gradient decorative stripe */}
+            <div className="absolute top-0 left-0 right-0 h-1.5 bg-gradient-to-r from-pink-400 via-rose-300 to-purple-400" />
 
             <div>
               {/* Drawer Header info */}
               <div className="flex justify-between items-start mb-6">
                 <div>
-                  <div className="inline-flex items-center gap-1 font-mono text-shonen-orange text-[10px] font-black uppercase mb-1">
-                    <Fingerprint className="w-3.5 h-3.5" />
-                    SECURITY_TUNNEL // USER_AUTHENTICATION
+                  <div className="inline-flex items-center gap-1.5 text-pink-600 text-xs font-bold uppercase mb-1">
+                    <span>🌸</span>
+                    USER PROFILE &bull; VELGRE
                   </div>
-                  <h2 className="text-2xl md:text-3xl font-black text-gray-950 uppercase tracking-tighter">
-                    {currentUser ? 'OPERATOR' : 'GATEKEEPER'}{' '}
-                    <span className="text-shonen-orange">CHASSIS</span>
+                  <h2 className="text-2xl md:text-3xl font-extrabold text-gray-900 tracking-tight">
+                    {currentUser ? 'Your Profile' : 'Sign In'}{' '}
+                    <span className="text-pink-500">🌸</span>
                   </h2>
                 </div>
                 <button
@@ -485,9 +485,9 @@ export default function CyberAuthProfile({
                     sounds.playTick();
                     onClose();
                   }}
-                  className="p-1.5 border border-gray-200 hover:border-shonen-orange hover:text-shonen-orange text-gray-500 transition-all"
+                  className="w-9 h-9 rounded-full bg-pink-50 border border-pink-200 hover:border-pink-300 hover:bg-pink-100 text-pink-600 flex items-center justify-center transition-all cursor-pointer shadow-xs"
                 >
-                  <X className="w-5 h-5" />
+                  <X className="w-4 h-4" />
                 </button>
               </div>
 
@@ -496,11 +496,11 @@ export default function CyberAuthProfile({
                 <motion.div
                   initial={{ opacity: 0, y: -10 }}
                   animate={{ opacity: 1, y: 0 }}
-                  className="mb-4 bg-shonen-orange/10 border border-shonen-orange p-3 font-mono text-[11px] text-shonen-orange flex items-start gap-2"
+                  className="mb-4 bg-rose-50 border border-rose-200 rounded-2xl p-3 text-xs text-rose-600 flex items-start gap-2 shadow-xs"
                 >
                   <ShieldAlert className="w-4 h-4 flex-shrink-0 mt-0.5" />
                   <div>
-                    <span className="font-extrabold">DECRYPT FAULT:</span> {error}
+                    <span className="font-bold">Notice:</span> {error}
                   </div>
                 </motion.div>
               )}
@@ -509,51 +509,48 @@ export default function CyberAuthProfile({
                 <motion.div
                   initial={{ opacity: 0, y: -10 }}
                   animate={{ opacity: 1, y: 0 }}
-                  className="mb-4 bg-shonen-orange/10 border border-shonen-orange p-3 font-mono text-[11px] text-shonen-orange flex items-start gap-2"
+                  className="mb-4 bg-emerald-50 border border-emerald-200 rounded-2xl p-3 text-xs text-emerald-700 flex items-start gap-2 shadow-xs"
                 >
                   <CheckCircle className="w-4 h-4 flex-shrink-0 mt-0.5" />
                   <div>
-                    <span className="font-extrabold">SYSTEM SYNCED:</span> {success}
+                    <span className="font-bold">Success:</span> {success}
                   </div>
                 </motion.div>
               )}
 
-              {/* EMAIL/PASSWORD SIGN IN REQUISITION (only if NOT logged in) */}
+              {/* EMAIL/PASSWORD SIGN IN (only if NOT logged in) */}
               {!currentUser && (
                 <div className="space-y-5">
-                  <div className="p-4 bg-white border border-gray-200 clip-cyber-card relative overflow-hidden">
-                    {/* Retro Grid Gridline Overlay */}
-                    <div className="absolute inset-0 opacity-[0.03] bg-[linear-gradient(to_right,#000_1px,transparent_1px),linear-gradient(to_bottom,#000_1px,transparent_1px)] bg-[size:14px_24px]" />
-                    
-                    <h3 className="font-mono text-xs font-black text-shonen-orange flex items-center gap-2 mb-2 uppercase tracking-widest">
-                      <Terminal className="w-4 h-4 animate-pulse text-shonen-orange" /> AUTHORIZATION SYSTEM
+                  <div className="p-4 bg-pink-50/50 border border-pink-100 rounded-3xl relative overflow-hidden">
+                    <h3 className="text-xs font-bold text-pink-600 flex items-center gap-2 mb-1.5 uppercase tracking-wide">
+                      🌸 Welcome to the Community
                     </h3>
-                    <p className="text-[11px] font-mono text-gray-500 leading-relaxed uppercase">
-                      SECURE YOUR CODENAME CREDENTIALS TO GAIN ENTRY TO THE ARENA STAGE.
+                    <p className="text-xs text-gray-600 leading-relaxed">
+                      Sign in or create an account to vote in polls, save likes, transmit messages, and discover anime soulmates!
                     </p>
                   </div>
 
                   <div className="space-y-4">
                     {/* Email Input */}
                     <div>
-                      <label htmlFor="login-email" className="block text-[10px] font-mono text-gray-500 uppercase font-black mb-1.5 tracking-widest">
-                        OPERATOR_EMAIL
+                      <label htmlFor="login-email" className="block text-xs font-bold text-gray-700 mb-1.5">
+                        Email Address 🌸
                       </label>
                       <input
                         id="login-email"
                         type="email"
                         value={email}
                         onChange={(e) => setEmail(e.target.value)}
-                        placeholder="operator@arena.network"
-                        className="w-full bg-white border border-gray-300 hover:border-gray-400 focus:border-shonen-orange px-3 py-2.5 font-mono text-xs text-gray-950 focus:outline-none focus:ring-1 focus:ring-shonen-orange placeholder:text-gray-400"
+                        placeholder="yourname@gmail.com"
+                        className="w-full bg-white border border-pink-200 focus:border-pink-400 focus:ring-2 focus:ring-pink-200/50 rounded-2xl px-4 py-2.5 text-xs text-gray-900 focus:outline-none placeholder:text-pink-300 transition-all shadow-inner"
                         required
                       />
                     </div>
 
                     {/* Password Input */}
                     <div>
-                      <label htmlFor="login-password" className="block text-[10px] font-mono text-gray-500 uppercase font-black mb-1.5 tracking-widest">
-                        DECRYPT_PASSWORD
+                      <label htmlFor="login-password" className="block text-xs font-bold text-gray-700 mb-1.5">
+                        Password 🔒
                       </label>
                       <input
                         id="login-password"
@@ -561,7 +558,7 @@ export default function CyberAuthProfile({
                         value={password}
                         onChange={(e) => setPassword(e.target.value)}
                         placeholder="••••••••••••"
-                        className="w-full bg-white border border-gray-300 hover:border-gray-400 focus:border-shonen-orange px-3 py-2.5 font-mono text-xs text-gray-950 focus:outline-none focus:ring-1 focus:ring-shonen-orange placeholder:text-gray-400"
+                        className="w-full bg-white border border-pink-200 focus:border-pink-400 focus:ring-2 focus:ring-pink-200/50 rounded-2xl px-4 py-2.5 text-xs text-gray-900 focus:outline-none placeholder:text-pink-300 transition-all shadow-inner"
                         required
                       />
                     </div>
@@ -572,35 +569,30 @@ export default function CyberAuthProfile({
                         id="btn-login-submit"
                         onClick={handleEmailLogin}
                         disabled={isSubmitting}
-                        className="bg-shonen-orange text-white hover:bg-black text-xs font-black py-3 px-4 uppercase tracking-widest transition-all duration-200 shadow-sm border-2 border-black cursor-pointer disabled:opacity-50"
-                        style={{ clipPath: 'polygon(0 0, 100% 0, 95% 100%, 0% 100%)' }}
+                        className="bg-gradient-to-r from-pink-500 to-rose-400 hover:from-pink-600 hover:to-rose-500 text-white text-xs font-bold py-3 px-4 rounded-full uppercase tracking-wider transition-all duration-200 shadow-md cursor-pointer disabled:opacity-50 active:scale-95"
                       >
-                        {isSubmitting ? 'DECRYPTING...' : '[ LOGIN ]'}
+                        {isSubmitting ? 'Signing In...' : '🌸 Log In'}
                       </button>
 
                       <button
                         id="btn-signup-submit"
                         onClick={handleSignUp}
                         disabled={isSubmitting}
-                        className="bg-transparent border-2 border-black text-black hover:bg-gray-100 text-[10px] font-black py-2.5 px-3 uppercase tracking-wider transition-all duration-200 cursor-pointer disabled:opacity-50 flex items-center justify-center"
-                        style={{ clipPath: 'polygon(5% 0, 100% 0, 100% 100%, 0% 100%)' }}
+                        className="bg-white border-2 border-pink-200 text-pink-600 hover:bg-pink-50 text-xs font-bold py-3 px-4 rounded-full uppercase tracking-wider transition-all duration-200 cursor-pointer disabled:opacity-50 flex items-center justify-center shadow-xs active:scale-95"
                       >
-                        {isSubmitting ? 'SYNCING...' : '[ SIGN UP / REGISTER ]'}
+                        {isSubmitting ? 'Signing Up...' : '✨ Sign Up'}
                       </button>
                     </div>
 
                     {/* Supabase Email Confirmation Helper Info */}
-                    <div className="p-3 bg-gray-50 border border-gray-200 rounded-sm text-[10px] font-mono text-gray-500 leading-relaxed uppercase">
-                      <span className="text-shonen-orange font-black block mb-1">⚠️ EMAIL PROTOCOL NOTICE:</span>
-                      IF YOUR SUPABASE PROJECT INSTANCE HAS <span className="text-gray-900 font-bold">"CONFIRM EMAIL"</span> ENABLED, NEWLY CREATED ACCOUNTS MUST CLICK THE EMAILED VERIFICATION LINK BEFORE THEIR DECRYPT LOGIN PROTOCOL WILL SUCCEED.
-                      <span className="block mt-1 text-gray-600">
-                        TO DISABLE: SUPABASE DASHBOARD &gt; AUTH &gt; PROVIDERS &gt; EMAIL &gt; TURN OFF "CONFIRM EMAIL".
-                      </span>
+                    <div className="p-3 bg-pink-50/40 border border-pink-100 rounded-2xl text-[11px] text-gray-600 leading-relaxed">
+                      <span className="text-pink-600 font-bold block mb-1">🌸 Email Verification Notice:</span>
+                      If your Supabase project requires email confirmation, please check your inbox for the link before logging in.
                     </div>
 
-                    <div className="flex items-center gap-2 justify-center py-1 text-[10px] font-mono text-gray-600 uppercase">
-                      <div className="w-1.5 h-1.5 bg-green-500 rounded-full animate-ping" />
-                      <span>SECURE CONNECTION VIA SUPABASE DECRYPT</span>
+                    <div className="flex items-center gap-2 justify-center py-1 text-[10px] text-gray-500">
+                      <div className="w-1.5 h-1.5 bg-emerald-400 rounded-full animate-ping" />
+                      <span>🌸 Secure connection via Supabase</span>
                     </div>
                   </div>
                 </div>
